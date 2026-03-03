@@ -1,4 +1,10 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+} from 'react';
 import './Consultar.css';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import config from '../config';
@@ -42,6 +48,11 @@ function Consultar() {
     acc[key] = (acc[key] || 0) + 1;
     return acc;
   }, {});
+
+  const detalhesFiltrados = useMemo(() => {
+    if (!modeloSelecionado) return detalhesArray;
+    return detalhesArray.filter((d) => (d?.modelo || 'SEM_MODELO') === modeloSelecionado);
+  }, [detalhesArray, modeloSelecionado]);
 
   const escapeCsv = (value) => {
     const raw = value === null || value === undefined ? '' : String(value);
@@ -252,146 +263,233 @@ function Consultar() {
     };
   }, [pararCamera]);
 
+  useEffect(() => {
+    setImeisFiltrados(detalhesFiltrados.map((d) => d?.imei).filter(Boolean));
+  }, [detalhesFiltrados]);
+
+  const onConsultar = useCallback(async () => {
+    try {
+      await buscarProduto(consulta);
+    } catch (error) {
+      setErroCamera(error.message);
+    }
+  }, [buscarProduto, consulta]);
+
+  const onLimpar = useCallback(async () => {
+    setConsulta('');
+    setResultado(null);
+    setErroCamera('');
+    setMensagemStatus('');
+    setModeloSelecionado(null);
+    setImeisFiltrados([]);
+    await pararCamera();
+  }, [pararCamera]);
+
   // =============================
   // RENDER
   // =============================
   return (
     <div className="consultar-container">
-      <h1>Consultar Produto</h1>
-
-      <div className="input-group">
-        <input
-          type="text"
-          value={consulta}
-          onChange={(e) => setConsulta(e.target.value)}
-          placeholder="Digite o código ou escaneie o QR Code"
-          className="form-control"
-        />
-
-        <button
-          onClick={cameraAtiva ? pararCamera : iniciarCamera}
-          className={`btn ${
-            cameraAtiva ? 'btn-danger' : 'btn-primary'
-          }`}
-          disabled={iniciando}
-        >
-          {cameraAtiva
-            ? 'Parar Câmera'
-            : 'Escanear QR Code'}
-        </button>
+      <div className="consultar-header">
+        <div className="consultar-header__title">
+          <h1>Consultar</h1>
+          <div className="consultar-subtitle">
+            Digite um ID/URL do cluster ou use o scanner para preencher automaticamente.
+          </div>
+        </div>
       </div>
 
-      {erroCamera && (
-        <div className="alert alert-warning mt-3">
-          {erroCamera}
-        </div>
-      )}
+      <div className="consultar-card">
+        <div className="consultar-form">
+          <div className="consultar-actions">
+            <button
+              type="button"
+              onClick={cameraAtiva ? pararCamera : iniciarCamera}
+              className={`action-button query-button consultar-actionButton ${
+                cameraAtiva ? 'consultar-actionButton--danger' : ''
+              }`}
+              disabled={iniciando || carregando}
+            >
+              {cameraAtiva ? 'FECHAR CÂMERA' : 'ABRIR CÂMERA'}
+            </button>
 
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          margin: '20px 0',
-        }}
-      >
-        <div
-          id="scanner"
-          ref={scannerRef}
-          style={{
-            width: 300,
-            height: 300,
-            display:
-              cameraAtiva || iniciando
-                ? 'block'
-                : 'none',
-            borderRadius: 12,
-            overflow: 'hidden',
-          }}
-        />
+            <button
+              type="button"
+              className="action-button query-button consultar-actionButton consultar-actionButton--ghost"
+              onClick={onLimpar}
+              disabled={carregando || iniciando}
+            >
+              Limpar
+            </button>
+
+            <button
+              type="button"
+              className="action-button query-button consultar-actionButton"
+              onClick={onConsultar}
+              disabled={carregando || iniciando || !consulta.trim()}
+              title="Repetir consulta com o último código lido"
+            >
+              Consultar
+            </button>
+          </div>
+
+          <div className="consultar-last">
+            <div className="consultar-lastLabel">Último código lido</div>
+            <div className="consultar-lastValue consultar-mono">
+              {consulta?.trim() ? consulta : '-'}
+            </div>
+          </div>
+
+          {!!mensagemStatus && !carregando && (
+            <div className="consultar-status" role="status">
+              {mensagemStatus}
+            </div>
+          )}
+
+          {erroCamera && (
+            <div className="alert alert-warning mt-3">{erroCamera}</div>
+          )}
+        </div>
+
+        <div className="consultar-scannerWrap">
+          <div
+            id="scanner"
+            ref={scannerRef}
+            className={`consultar-scanner ${cameraAtiva || iniciando ? 'is-visible' : ''}`}
+          />
+          {(cameraAtiva || iniciando) && (
+            <div className="consultar-scannerHint">
+              Aponte a câmera para o QR Code / código de barras.
+            </div>
+          )}
+        </div>
       </div>
 
       {carregando && (
-        <div className="text-center">
-          <div
-            className="spinner-border text-primary"
-            role="status"
-          />
-          <p>Buscando informações...</p>
+        <div className="consultar-loading">
+          <div className="spinner-border text-primary" role="status" />
+          <div className="consultar-loadingText">Buscando informações...</div>
         </div>
       )}
 
       {resultado && (
-        <div className="card mt-4">
-          <div className="card-body">
-            <h3>{resultado.nome}</h3>
-            <p className="text-muted">
-              {resultado.descricao}
-            </p>
-            <p>
-              Total de IMEIs:{' '}
-              <strong>
-                {resultado.total_imeis}
-              </strong>
-            </p>
-
-            {imeisLista.length > 0 && (
-              <div className="mt-3">
-                <button
-                  type="button"
-                  className="btn btn-outline-primary"
-                  onClick={baixarCsvImeis}
-                >
-                  Baixar Excel (CSV)
-                </button>
-
-                <p>
-                  IMEIs:{' '}
-                  <strong>
-                    {imeisLista.join(', ')}
-                  </strong>
-                </p>
-
-                <div className="mt-3">
-                  <h4>Resumo por Status</h4>
-                  {Object.keys(resumoPorStatus).length === 0 ? (
-                    <p className="text-muted">Sem dados de status.</p>
-                  ) : (
-                    <div>
-                      {Object.entries(resumoPorStatus).map(([status, qtd]) => (
-                        <div key={status}>
-                          <strong>{status}</strong>: {qtd}
-                        </div>
-                      ))}
-                    </div>
+        <div className="consultar-result">
+          <div className="card mt-4">
+            <div className="card-body">
+              <div className="consultar-resultHeader">
+                <div>
+                  <h3 className="consultar-resultTitle">{resultado.nome}</h3>
+                  {!!resultado.descricao && (
+                    <div className="text-muted">{resultado.descricao}</div>
                   )}
+                  <div className="consultar-resultMeta">
+                    ID: <strong>{resultado.id}</strong>
+                  </div>
                 </div>
 
-                <div className="mt-3">
-                  <h4>Resumo por Modelo</h4>
-                  {Object.keys(resumoPorModelo).length === 0 ? (
-                    <p className="text-muted">Sem dados de modelo.</p>
-                  ) : (
-                    <div>
-                      {Object.entries(resumoPorModelo).map(([modelo, qtd]) => (
-                        <div key={modelo}>
-                          <strong>{modelo}</strong>: {qtd}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                {imeisLista.length > 0 && (
+                  <div className="consultar-resultHeaderActions">
+                    <button
+                      type="button"
+                      className="btn btn-outline-primary"
+                      onClick={baixarCsvImeis}
+                    >
+                      Baixar CSV
+                    </button>
+                  </div>
+                )}
+              </div>
 
+              <div className="consultar-kpis">
+                <div className="consultar-kpi">
+                  <div className="consultar-kpiLabel">Total de IMEIs</div>
+                  <div className="consultar-kpiValue">{resultado.total_imeis}</div>
+                </div>
+                <div className="consultar-kpi">
+                  <div className="consultar-kpiLabel">Itens exibidos</div>
+                  <div className="consultar-kpiValue">{detalhesFiltrados.length}</div>
+                </div>
+              </div>
+
+              {imeisLista.length > 0 && (
+                <div className="consultar-panels">
+                  <div className="consultar-panel">
+                    <div className="consultar-panelTitle">Resumo por Status</div>
+                    {Object.keys(resumoPorStatus).length === 0 ? (
+                      <div className="text-muted">Sem dados de status.</div>
+                    ) : (
+                      <div className="consultar-chips">
+                        {Object.entries(resumoPorStatus)
+                          .sort((a, b) => b[1] - a[1])
+                          .map(([status, qtd]) => (
+                            <span key={status} className="consultar-chip">
+                              <strong>{status}</strong>
+                              <span className="consultar-chipCount">{qtd}</span>
+                            </span>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="consultar-panel">
+                    <div className="consultar-panelTitle">Resumo por Modelo</div>
+                    {Object.keys(resumoPorModelo).length === 0 ? (
+                      <div className="text-muted">Sem dados de modelo.</div>
+                    ) : (
+                      <div className="consultar-chips">
+                        {Object.entries(resumoPorModelo)
+                          .sort((a, b) => b[1] - a[1])
+                          .slice(0, 12)
+                          .map(([modelo, qtd]) => (
+                            <span key={modelo} className="consultar-chip">
+                              <strong>{modelo}</strong>
+                              <span className="consultar-chipCount">{qtd}</span>
+                            </span>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {imeisLista.length > 0 && (
                 <div className="lista-imeis mt-4">
-                  <h4>Detalhes dos IMEIs</h4>
+                  <div className="consultar-tableHeader">
+                    <h4>Detalhes dos IMEIs</h4>
+
+                    <div className="consultar-tableTools">
+                      <select
+                        className="form-select consultar-select"
+                        value={modeloSelecionado || ''}
+                        onChange={(e) =>
+                          setModeloSelecionado(e.target.value || null)
+                        }
+                      >
+                        <option value="">Todos os modelos</option>
+                        {Object.keys(resumoPorModelo)
+                          .sort((a, b) => a.localeCompare(b))
+                          .map((m) => (
+                            <option key={m} value={m}>
+                              {m} ({resumoPorModelo[m]})
+                            </option>
+                          ))}
+                      </select>
+
+                      <div className="consultar-countMuted">
+                        IMEIs filtrados: <strong>{imeisFiltrados.length}</strong>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="cabecalho-tabela">
                     <div>IMEI</div>
                     <div>Modelo</div>
                     <div>Status</div>
                   </div>
 
-                  {detalhesArray.map((d) => (
+                  {detalhesFiltrados.map((d) => (
                     <div className="linha-imei" key={d.imei}>
-                      <div>{d.imei}</div>
+                      <div className="consultar-mono">{d.imei}</div>
                       <div>{d.modelo || '-'}</div>
                       <div>
                         <span
@@ -407,8 +505,8 @@ function Consultar() {
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       )}
