@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './Kanban.css';
 import WebhookStatus from './WebhookStatus';
+import config from '../config';
 
 const Kanban = () => {
   const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [initialLoading, setInitialLoading] = useState(true);
 
   const [draggedTask, setDraggedTask] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -41,6 +45,27 @@ const Kanban = () => {
     { id: 'feito', title: 'Feito', color: '#45b7d1' }
   ];
 
+  // Carregar tarefas do backend ao iniciar
+  useEffect(() => {
+    loadTasks();
+  }, []);
+
+  const loadTasks = async () => {
+    try {
+      const response = await fetch(config.TAREFAS);
+      if (!response.ok) {
+        throw new Error(`Erro ${response.status}`);
+      }
+      const tasksData = await response.json();
+      setTasks(tasksData);
+    } catch (err) {
+      console.error('Erro ao carregar tarefas:', err);
+      setError('Erro ao carregar tarefas do servidor');
+    } finally {
+      setInitialLoading(false);
+    }
+  };
+
   const handleDragStart = (task) => {
     setDraggedTask(task);
   };
@@ -49,27 +74,52 @@ const Kanban = () => {
     e.preventDefault();
   };
 
-  const handleDrop = (e, columnId) => {
+  const handleDrop = async (e, columnId) => {
     e.preventDefault();
     if (draggedTask) {
-      const updatedTask = { ...draggedTask, status: columnId };
-      
-      // Enviar webhook para diferentes colunas
-      if (columnId === 'a-fazer' && draggedTask.status !== 'a-fazer') {
-        sendWebhook(updatedTask, 'DEMANDA');
-      } else if (columnId === 'em-andamento' && draggedTask.status !== 'em-andamento') {
-        sendWebhook(updatedTask, 'EM_ANDAMENTO');
-      } else if (columnId === 'erro' && draggedTask.status !== 'erro') {
-        sendWebhook(updatedTask, 'ERRO');
-      } else if (columnId === 'feito' && draggedTask.status !== 'feito') {
-        sendWebhook(updatedTask, 'CONCLUIDO');
+      try {
+        // Atualizar status no backend
+        const response = await fetch(`${config.TAREFAS}/${draggedTask.id}/status`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            status: columnId,
+            observacao: draggedTask.observacao
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Erro ${response.status}`);
+        }
+
+        const savedTask = await response.json();
+        
+        // Enviar webhook para diferentes colunas
+        if (columnId === 'a-fazer' && draggedTask.status !== 'a-fazer') {
+          sendWebhook(savedTask, 'DEMANDA');
+        } else if (columnId === 'em-andamento' && draggedTask.status !== 'em-andamento') {
+          sendWebhook(savedTask, 'EM_ANDAMENTO');
+        } else if (columnId === 'erro' && draggedTask.status !== 'erro') {
+          sendWebhook(savedTask, 'ERRO');
+        } else if (columnId === 'feito' && draggedTask.status !== 'feito') {
+          sendWebhook(savedTask, 'CONCLUIDO');
+        }
+        
+        // Atualizar estado local
+        setTasks(tasks.map(task => 
+          task.id === draggedTask.id 
+            ? savedTask
+            : task
+        ));
+      } catch (err) {
+        console.error('Erro ao atualizar status:', err);
+        setError('Erro ao atualizar status da tarefa');
+        // Reverter para o status anterior em caso de erro
+        return;
       }
       
-      setTasks(tasks.map(task => 
-        task.id === draggedTask.id 
-          ? updatedTask
-          : task
-      ));
       setDraggedTask(null);
     }
   };
@@ -83,21 +133,45 @@ const Kanban = () => {
     }
   };
 
-  const addTask = () => {
-    if (newTask.title && newTask.imei && newTask.unidade && newTask.prazo && newTask.perfil) {
-      const task = {
-        id: tasks.length > 0 ? Math.max(...tasks.map(t => t.id)) + 1 : 1,
-        title: newTask.title,
-        imei: newTask.imei,
-        unidade: newTask.unidade,
-        prazo: newTask.prazo,
-        observacao: newTask.observacao,
-        perfil: newTask.perfil,
-        numeroChamado: newTask.numeroChamado,
-        status: 'demanda',
-        priority: newTask.priority
-      };
-      setTasks([...tasks, task]);
+  const addTask = async () => {
+    if (!newTask.title || !newTask.imei || !newTask.unidade || !newTask.prazo || !newTask.perfil) {
+      setError('Preencha todos os campos obrigatórios');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch(config.TAREFAS, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: newTask.title,
+          imei: newTask.imei,
+          unidade: newTask.unidade,
+          prazo: newTask.prazo,
+          perfil: newTask.perfil,
+          priority: newTask.priority,
+          observacao: newTask.observacao,
+          numero_chamado: newTask.numeroChamado,
+          status: 'demanda'
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || `Erro ${response.status}`);
+      }
+
+      const savedTask = await response.json();
+      
+      // Adicionar tarefa salva no estado local
+      setTasks([...tasks, savedTask]);
+      
+      // Limpar formulário
       setNewTask({
         title: '',
         imei: '',
@@ -109,6 +183,11 @@ const Kanban = () => {
         priority: 'media'
       });
       setShowAddForm(false);
+    } catch (err) {
+      console.error('Erro ao salvar tarefa:', err);
+      setError(err.message || 'Erro ao salvar tarefa');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -118,6 +197,61 @@ const Kanban = () => {
       ...prev,
       [name]: value
     }));
+  };
+
+  const updateObservacao = async (taskId, newObservacao) => {
+    try {
+      const response = await fetch(`${config.TAREFAS}/${taskId}/observacao`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          observacao: newObservacao
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro ${response.status}`);
+      }
+
+      const updatedTask = await response.json();
+      
+      // Atualizar estado local
+      setTasks(tasks.map(task => 
+        task.id === taskId 
+          ? updatedTask
+          : task
+      ));
+      
+      return updatedTask;
+    } catch (err) {
+      console.error('Erro ao atualizar observação:', err);
+      setError('Erro ao atualizar observação');
+      throw err;
+    }
+  };
+
+  const deleteTask = async (taskId) => {
+    if (!window.confirm('Tem certeza que deseja deletar esta tarefa?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${config.TAREFAS}/${taskId}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro ${response.status}`);
+      }
+
+      // Remover tarefa do estado local
+      setTasks(tasks.filter(task => task.id !== taskId));
+    } catch (err) {
+      console.error('Erro ao deletar tarefa:', err);
+      setError('Erro ao deletar tarefa');
+    }
   };
 
   const sendWebhook = async (task, eventType = 'EM_ANDAMENTO') => {
@@ -191,29 +325,23 @@ const Kanban = () => {
     } catch (error) {
       console.error('💥 Erro de conexão ao enviar webhook:');
       console.error('🔍 Detalhes do erro:', error.message);
-      console.error('📍 Stack trace:', error.stack);
-      console.error('🌐 Verifique a conexão com a internet e a URL do webhook');
     }
   };
 
-  const deleteTask = (taskId) => {
-    setTasks(tasks.filter(task => task.id !== taskId));
-  };
-
-  const startEditObservacao = (task) => {
+  const handleEditObservacao = (task) => {
     setEditingTask(task.id);
     setEditObservacao(task.observacao);
   };
 
-  const saveEditObservacao = () => {
+  const saveEditObservacao = async () => {
     if (editingTask) {
-      setTasks(tasks.map(task => 
-        task.id === editingTask 
-          ? { ...task, observacao: editObservacao }
-          : task
-      ));
-      setEditingTask(null);
-      setEditObservacao('');
+      try {
+        await updateObservacao(editingTask, editObservacao);
+        setEditingTask(null);
+        setEditObservacao('');
+      } catch (error) {
+        // Erro já é tratado na função updateObservacao
+      }
     }
   };
 
@@ -231,7 +359,47 @@ const Kanban = () => {
         </button>
       </div>
 
-      {showAddForm && (
+      {/* Mensagens de erro e loading */}
+      {error && (
+        <div className="error-banner" style={{ 
+          backgroundColor: '#e74c3c', 
+          color: 'white', 
+          padding: '10px', 
+          margin: '10px 0', 
+          borderRadius: '5px',
+          textAlign: 'center'
+        }}>
+          {error}
+          <button 
+            onClick={() => setError('')}
+            style={{ 
+              background: 'none', 
+              border: 'none', 
+              color: 'white', 
+              marginLeft: '10px', 
+              cursor: 'pointer',
+              fontSize: '16px'
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {initialLoading ? (
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          height: '200px',
+          fontSize: '18px',
+          color: '#666'
+        }}>
+          Carregando tarefas...
+        </div>
+      ) : (
+        <>
+        {showAddForm && (
         <div className="add-task-modal">
           <div className="modal-content">
             <h3>Nova Tarefa</h3>
@@ -329,11 +497,16 @@ const Kanban = () => {
               />
             </div>
             <div className="form-actions">
-              <button className="cancel-btn" onClick={() => setShowAddForm(false)}>
+              {error && (
+                <div className="error-message" style={{ color: '#e74c3c', marginBottom: '10px', fontSize: '14px' }}>
+                  {error}
+                </div>
+              )}
+              <button className="cancel-btn" onClick={() => setShowAddForm(false)} disabled={loading}>
                 Cancelar
               </button>
-              <button className="save-btn" onClick={addTask}>
-                Salvar Tarefa
+              <button className="save-btn" onClick={addTask} disabled={loading}>
+                {loading ? 'Salvando...' : 'Salvar Tarefa'}
               </button>
             </div>
           </div>
@@ -376,7 +549,7 @@ const Kanban = () => {
                         {task.status === 'em-andamento' && (
                           <button 
                             className="edit-btn"
-                            onClick={() => startEditObservacao(task)}
+                            onClick={() => handleEditObservacao(task)}
                             title="Editar observação"
                           >
                             ✏️
@@ -433,6 +606,8 @@ const Kanban = () => {
       </div>
       
       <WebhookStatus />
+        </>
+      )}
     </div>
   );
 };

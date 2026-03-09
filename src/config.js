@@ -20,7 +20,8 @@ const baseQr = USE_DEV_PROXY ? '' : QR_BASE_URL;
 const API_ENDPOINTS = {
   CLUSTERS: `${baseApi}/clusters`,
   CLUSTER_QRCODE: (clusterId) => `${baseQr}/clusters/${encodeURIComponent(String(clusterId))}/qrcode`,
-  PROCESSAR_CSV: `${baseApi}/processar-csv`
+  PROCESSAR_CSV: `${baseApi}/processar-csv`,
+  TAREFAS: `${baseApi}/tarefas`
 };
 
 const config = {
