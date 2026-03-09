@@ -21,6 +21,7 @@ const Kanban = () => {
     perfil: '',
     numeroChamado: ''
   });
+  
 
   const [editingTask, setEditingTask] = useState(null);
   const [editObservacao, setEditObservacao] = useState('');
