@@ -285,6 +285,7 @@ const Kanban = () => {
       formData.append('file', csvFile);
 
       // Debug: log do que está sendo enviado
+      console.log('URL do upload:', config.TAREFAS_UPLOAD);
       console.log('Enviando arquivo:', csvFile);
       console.log('FormData entries:');
       for (let [key, value] of formData.entries()) {
@@ -293,6 +294,9 @@ const Kanban = () => {
 
       const response = await fetch(config.TAREFAS_UPLOAD, {
         method: 'POST',
+        headers: {
+          // Não enviar Content-Type para FormData - o browser define automaticamente com boundary
+        },
         body: formData
       });
 
