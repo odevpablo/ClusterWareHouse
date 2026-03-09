@@ -265,6 +265,17 @@ const Kanban = () => {
       return;
     }
 
+    // Validação básica do arquivo
+    if (!csvFile.name.toLowerCase().endsWith('.csv')) {
+      setCsvError('Por favor, selecione um arquivo CSV válido');
+      return;
+    }
+
+    if (csvFile.size > 5 * 1024 * 1024) { // 5MB
+      setCsvError('Arquivo muito grande. Máximo 5MB');
+      return;
+    }
+
     setCsvLoading(true);
     setCsvError('');
     setCsvSuccess('');
@@ -273,17 +284,37 @@ const Kanban = () => {
       const formData = new FormData();
       formData.append('file', csvFile);
 
+      // Debug: log do que está sendo enviado
+      console.log('Enviando arquivo:', csvFile);
+      console.log('FormData entries:');
+      for (let [key, value] of formData.entries()) {
+        console.log(`${key}:`, value);
+      }
+
       const response = await fetch(config.TAREFAS_UPLOAD, {
         method: 'POST',
         body: formData
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(errorText || `Erro ${response.status}`);
+        console.error('Error response:', errorText);
+        
+        // Tentar parse do erro se for JSON
+        try {
+          const errorJson = JSON.parse(errorText);
+          setCsvError(errorJson.detail || errorText);
+        } catch {
+          setCsvError(errorText || `Erro ${response.status}`);
+        }
+        return;
       }
 
       const uploadedTasks = await response.json();
+      console.log('Tasks uploaded:', uploadedTasks);
       
       // Adicionar novas tarefas ao estado local
       setTasks([...tasks, ...uploadedTasks]);
