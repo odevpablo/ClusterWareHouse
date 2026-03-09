@@ -207,7 +207,7 @@ const Kanban = () => {
   const updateObservacao = async (taskId, newObservacao) => {
     try {
       const response = await fetch(`${config.TAREFAS}/${taskId}/observacao`, {
-        method: 'PATCH',
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -294,9 +294,7 @@ const Kanban = () => {
 
       const response = await fetch(config.TAREFAS_UPLOAD, {
         method: 'POST',
-        headers: {
-          // Não enviar Content-Type para FormData - o browser define automaticamente com boundary
-        },
+        // Não enviar headers para FormData - o browser define automaticamente
         body: formData
       });
 
