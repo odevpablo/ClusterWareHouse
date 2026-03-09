@@ -21,7 +21,8 @@ const API_ENDPOINTS = {
   CLUSTERS: `${baseApi}/clusters`,
   CLUSTER_QRCODE: (clusterId) => `${baseQr}/clusters/${encodeURIComponent(String(clusterId))}/qrcode`,
   PROCESSAR_CSV: `${baseApi}/processar-csv`,
-  TAREFAS: `${baseApi}/tarefas`
+  TAREFAS: `${baseApi}/tarefas`,
+  TAREFAS_UPLOAD: `${baseApi}/tarefas/upload`
 };
 
 const config = {

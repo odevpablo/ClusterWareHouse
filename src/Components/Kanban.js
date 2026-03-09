@@ -24,6 +24,10 @@ const Kanban = () => {
 
   const [editingTask, setEditingTask] = useState(null);
   const [editObservacao, setEditObservacao] = useState('');
+  const [csvFile, setCsvFile] = useState(null);
+  const [csvLoading, setCsvLoading] = useState(false);
+  const [csvError, setCsvError] = useState('');
+  const [csvSuccess, setCsvSuccess] = useState('');
 
   const perfis = [
     'Motorista',
@@ -251,6 +255,50 @@ const Kanban = () => {
     } catch (err) {
       console.error('Erro ao deletar tarefa:', err);
       setError('Erro ao deletar tarefa');
+    }
+  };
+
+  const handleCsvUpload = async () => {
+    if (!csvFile) {
+      setCsvError('Selecione um arquivo CSV');
+      return;
+    }
+
+    setCsvLoading(true);
+    setCsvError('');
+    setCsvSuccess('');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', csvFile);
+
+      const response = await fetch(config.TAREFAS_UPLOAD, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || `Erro ${response.status}`);
+      }
+
+      const uploadedTasks = await response.json();
+      
+      // Adicionar novas tarefas ao estado local
+      setTasks([...tasks, ...uploadedTasks]);
+      
+      setCsvSuccess(`Importadas ${uploadedTasks.length} tarefas com sucesso!`);
+      setCsvFile(null);
+      
+      // Limpar o input file
+      const fileInput = document.getElementById('csv-file-input');
+      if (fileInput) fileInput.value = '';
+      
+    } catch (err) {
+      console.error('Erro ao fazer upload CSV:', err);
+      setCsvError(err.message || 'Erro ao processar arquivo CSV');
+    } finally {
+      setCsvLoading(false);
     }
   };
 
@@ -496,6 +544,122 @@ const Kanban = () => {
                 rows="3"
               />
             </div>
+            
+            {/* Seção de Upload CSV */}
+            <div className="csv-upload-section" style={{ 
+              borderTop: '1px solid #ddd', 
+              paddingTop: '20px', 
+              marginTop: '20px' 
+            }}>
+              <h4 style={{ marginBottom: '15px', color: '#333' }}>
+                📁 Importar Tarefas em Massa (CSV)
+              </h4>
+              
+              <div className="form-group">
+                <label>Selecione o arquivo CSV:</label>
+                <input
+                  id="csv-file-input"
+                  type="file"
+                  accept=".csv"
+                  onChange={(e) => {
+                    setCsvFile(e.target.files[0]);
+                    setCsvError('');
+                    setCsvSuccess('');
+                  }}
+                  style={{ marginBottom: '10px' }}
+                />
+              </div>
+              
+              {csvFile && (
+                <div style={{ marginBottom: '10px', fontSize: '14px', color: '#666' }}>
+                  Arquivo selecionado: <strong>{csvFile.name}</strong>
+                </div>
+              )}
+              
+              {csvError && (
+                <div style={{ 
+                  color: '#e74c3c', 
+                  marginBottom: '10px', 
+                  fontSize: '14px',
+                  padding: '8px',
+                  backgroundColor: '#ffe6e6',
+                  borderRadius: '4px'
+                }}>
+                  ⚠️ {csvError}
+                </div>
+              )}
+              
+              {csvSuccess && (
+                <div style={{ 
+                  color: '#27ae60', 
+                  marginBottom: '10px', 
+                  fontSize: '14px',
+                  padding: '8px',
+                  backgroundColor: '#e8f8f5',
+                  borderRadius: '4px'
+                }}>
+                  ✅ {csvSuccess}
+                </div>
+              )}
+              
+              <div className="csv-info" style={{ 
+                fontSize: '12px', 
+                color: '#666', 
+                marginBottom: '15px',
+                padding: '10px',
+                backgroundColor: '#f8f9fa',
+                borderRadius: '4px'
+              }}>
+                <strong>Formato esperado do CSV:</strong><br/>
+                Colunas: title, imei, unidade, prazo, perfil, priority, observacao, numero_chamado, status<br/>
+                <strong>Obrigatórios:</strong> title, imei, unidade, prazo, perfil
+              </div>
+              
+              <div style={{ marginBottom: '15px' }}>
+                <button 
+                  onClick={() => {
+                    const csvContent = `title,imei,unidade,prazo,perfil,priority,observacao,numero_chamado,status
+Instalação Terminal 01,123456789012345,Matriz São Paulo,2024-12-31,tecnico,media,Instalar novo terminal,CH-2024-001,demanda
+Manutenção Equipamento,987654321098765,Filial Rio,2024-11-30,tecnico,alta,Manutenção preventiva,CH-2024-002,demanda`;
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = 'exemplo_tarefas.csv';
+                    link.click();
+                  }}
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor: '#3498db',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    marginRight: '10px'
+                  }}
+                >
+                  📥 Baixar Exemplo CSV
+                </button>
+              </div>
+              
+              <button 
+                className="csv-upload-btn"
+                onClick={handleCsvUpload}
+                disabled={!csvFile || csvLoading}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: csvFile && !csvLoading ? '#27ae60' : '#95a5a6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: csvFile && !csvLoading ? 'pointer' : 'not-allowed',
+                  fontSize: '14px'
+                }}
+              >
+                {csvLoading ? 'Importando...' : 'Importar CSV'}
+              </button>
+            </div>
+            
             <div className="form-actions">
               {error && (
                 <div className="error-message" style={{ color: '#e74c3c', marginBottom: '10px', fontSize: '14px' }}>
