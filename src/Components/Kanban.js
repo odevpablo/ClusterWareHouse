@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import './Kanban.css';
-import WebhookStatus from './WebhookStatus';
 import config from '../config';
 
 const Kanban = () => {
@@ -29,6 +28,7 @@ const Kanban = () => {
   const [csvLoading, setCsvLoading] = useState(false);
   const [csvError, setCsvError] = useState('');
   const [csvSuccess, setCsvSuccess] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const perfis = [
     'Motorista',
@@ -432,13 +432,72 @@ const Kanban = () => {
     setEditObservacao('');
   };
 
+  const filterTasks = (tasks) => {
+    if (!searchTerm.trim()) {
+      return tasks;
+    }
+    
+    const searchLower = searchTerm.toLowerCase();
+    return tasks.filter(task => 
+      task.title.toLowerCase().includes(searchLower) ||
+      task.imei.toLowerCase().includes(searchLower) ||
+      task.unidade.toLowerCase().includes(searchLower) ||
+      task.numeroChamado.toLowerCase().includes(searchLower) ||
+      task.perfil.toLowerCase().includes(searchLower) ||
+      (task.observacao && task.observacao.toLowerCase().includes(searchLower))
+    );
+  };
+
+  const copyToClipboard = async (text, event) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      // Opcional: mostrar feedback visual
+      const originalText = event.target.textContent;
+      event.target.textContent = '✓ Copiado!';
+      event.target.style.color = '#27ae60';
+      setTimeout(() => {
+        event.target.textContent = originalText;
+        event.target.style.color = '';
+      }, 2000);
+    } catch (err) {
+      console.error('Erro ao copiar texto:', err);
+      // Fallback para navegadores mais antigos
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+    }
+  };
+
   return (
     <div className="kanban-container">
       <div className="kanban-header">
         <h2>Kanban de Processos</h2>
-        <button className="add-task-btn" onClick={() => setShowAddForm(true)}>
-          + Nova Tarefa
-        </button>
+        <div className="header-actions">
+          <div className="search-container">
+            <input
+              type="text"
+              placeholder="Pesquisar por palavras-chave..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="search-input"
+            />
+            {searchTerm && (
+              <button 
+                className="clear-search-btn"
+                onClick={() => setSearchTerm('')}
+                title="Limpar pesquisa"
+              >
+                ×
+              </button>
+            )}
+          </div>
+          <button className="add-task-btn" onClick={() => setShowAddForm(true)}>
+            + Nova Tarefa
+          </button>
+        </div>
       </div>
 
       {/* Mensagens de erro e loading */}
@@ -722,12 +781,12 @@ Manutenção Equipamento,987654321098765,Filial Rio,2024-11-30,tecnico,alta,Manu
             <div className="column-header" style={{ backgroundColor: column.color }}>
               <h3>{column.title}</h3>
               <span className="task-count">
-                {tasks.filter(task => task.status === column.id).length}
+                {filterTasks(tasks).filter(task => task.status === column.id).length}
               </span>
             </div>
             
             <div className="column-content">
-              {tasks
+              {filterTasks(tasks)
                 .filter(task => task.status === column.id)
                 .map(task => (
                   <div
@@ -764,7 +823,13 @@ Manutenção Equipamento,987654321098765,Filial Rio,2024-11-30,tecnico,alta,Manu
                     <div className="task-content">
                       <p><strong>{task.title}</strong></p>
                       <div className="task-details">
-                        <span className="detail-item">📱 {task.imei}</span>
+                        <span 
+                          className="detail-item imei-clickable"
+                          onClick={(e) => copyToClipboard(task.imei, e)}
+                          title="Clique para copiar o IMEI"
+                        >
+                          📱 {task.imei}
+                        </span>
                         <span className="detail-item">🏢 {task.unidade}</span>
                         <span className="detail-item">📞 {task.numeroChamado}</span>
                         <span className="detail-item">👤 {task.perfil}</span>
@@ -802,9 +867,7 @@ Manutenção Equipamento,987654321098765,Filial Rio,2024-11-30,tecnico,alta,Manu
           </div>
         ))}
       </div>
-      
-      <WebhookStatus />
-        </>
+    </>
       )}
     </div>
   );

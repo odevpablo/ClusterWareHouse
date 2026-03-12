@@ -14,9 +14,80 @@
 
 .app-header {
   background: linear-gradient(135deg, #7e15ac 0%, #3a2093 100%);
-  padding: 20px;
+  padding: 0;
   color: white;
   text-align: center;
+  position: relative;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  max-width: 1200px;
+  margin: 0 auto;
+  height: 80px;
+  padding: 0 20px;
+}
+
+.back-button {
+  position: fixed;
+  top: 20px;
+  left: 0;
+
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border: none;
+  color: #3a2093;
+
+    font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 20px;
+  border-radius: 0 0 25px 0;
+
+  box-shadow: 2px 4px 15px rgba(58, 32, 147, 0.25);
+  transition: all 0.3s ease;
+
+  z-index: 1000;
+}
+
+.back-button::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #7e15ac 0%, #3a2093 100%);
+  border-radius: inherit;
+
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease;
+
+  z-index: 0;
+}
+.back-button:hover {
+  transform: translateX(2px);
+  box-shadow: 0 8px 25px rgba(236, 236, 236, 0.4);
+}
+
+.back-button:hover::before {
+  opacity: 1;
+}
+
+.back-button:hover {
+  color: white;
+}
+
+.back-button:active {
+  transform: translateX(2px);
+}
+
+.back-button span {
+  position: relative;
+  z-index: 1;
 }
 
 .app-logo {
@@ -150,26 +221,3 @@
   }
 }
 
-/* Botão de voltar */
-.back-button {
-  background: none;
-  border: none;
-  color: #2196F3;
-  font-size: 16px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  margin-bottom: 20px;
-  padding: 5px 10px;
-  border-radius: 4px;
-  transition: background-color 0.2s ease;
-}
-
-.back-button:hover {
-  background-color: #f0f7ff;
-}
-
-.back-button:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.3);
-}

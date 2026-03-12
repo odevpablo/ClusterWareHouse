@@ -11,7 +11,14 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <img src={logo} alt="Simpress Logo" className="app-logo" />
+        <div className="header-content">
+          {view && (
+            <button className="back-button" onClick={() => setView('')}>
+              <span>&larr; Voltar</span>
+            </button>
+          )}
+          <img src={logo} alt="Simpress Logo" className="app-logo" />
+        </div>
       </header>
       <main className="app-content">
         {!view ? (
@@ -46,33 +53,13 @@ function App() {
             </div>
           </section>
         ) : view === 'criar' ? (
-          <>
-            <button className="back-button" onClick={() => setView('')}>
-              &larr; Voltar
-            </button>
-            <CriarEtiqueta />
-          </>
+          <CriarEtiqueta />
         ) : view === 'formulario' ? (
-          <>
-            <button className="back-button" onClick={() => setView('')}>
-              &larr; Voltar
-            </button>
-            <Formulario />
-          </>
+          <Formulario />
         ) : view === 'kanban' ? (
-          <>
-            <button className="back-button" onClick={() => setView('')}>
-              &larr; Voltar
-            </button>
-            <Kanban />
-          </>
+          <Kanban />
         ) : (
-          <>
-            <button className="back-button" onClick={() => setView('')}>
-              &larr; Voltar
-            </button>
-            <Consultar />
-          </>
+          <Consultar />
         )}
       </main>
       <footer className="app-footer">
