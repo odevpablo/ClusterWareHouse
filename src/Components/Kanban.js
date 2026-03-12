@@ -439,11 +439,11 @@ const Kanban = () => {
     
     const searchLower = searchTerm.toLowerCase();
     return tasks.filter(task => 
-      task.title.toLowerCase().includes(searchLower) ||
-      task.imei.toLowerCase().includes(searchLower) ||
-      task.unidade.toLowerCase().includes(searchLower) ||
-      task.numeroChamado.toLowerCase().includes(searchLower) ||
-      task.perfil.toLowerCase().includes(searchLower) ||
+      (task.title && task.title.toLowerCase().includes(searchLower)) ||
+      (task.imei && task.imei.toLowerCase().includes(searchLower)) ||
+      (task.unidade && task.unidade.toLowerCase().includes(searchLower)) ||
+      (task.numeroChamado && task.numeroChamado.toLowerCase().includes(searchLower)) ||
+      (task.perfil && task.perfil.toLowerCase().includes(searchLower)) ||
       (task.observacao && task.observacao.toLowerCase().includes(searchLower))
     );
   };
