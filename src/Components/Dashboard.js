@@ -135,7 +135,7 @@ const Dashboard = ({ onBack }) => {
       <div className="dashboard-header">
         <div className="header-left">
           <button className="back-btn" onClick={onBack}>
-            ← Voltar
+            ← KANBAN
           </button>
           <h1>Dashboard de Desempenho</h1>
         </div>
@@ -166,7 +166,6 @@ const Dashboard = ({ onBack }) => {
       {/* Cards principais */}
       <div className="metrics-grid">
         <div className="metric-card primary">
-          <div className="metric-icon">T</div>
           <div className="metric-content">
             <h3>{totalTasks}</h3>
             <p>Total de Tarefas</p>
@@ -174,7 +173,6 @@ const Dashboard = ({ onBack }) => {
         </div>
 
         <div className="metric-card success">
-          <div className="metric-icon">C</div>
           <div className="metric-content">
             <h3>{tasksByStatus.feito}</h3>
             <p>Concluídas</p>
@@ -183,7 +181,6 @@ const Dashboard = ({ onBack }) => {
         </div>
 
         <div className="metric-card warning">
-          <div className="metric-icon">E</div>
           <div className="metric-content">
             <h3>{tasksByStatus['em-andamento']}</h3>
             <p>Em Andamento</p>
@@ -191,7 +188,6 @@ const Dashboard = ({ onBack }) => {
         </div>
 
         <div className="metric-card danger" onClick={() => setShowOverdueModal(true)} style={{ cursor: 'pointer' }}>
-          <div className="metric-icon">A</div>
           <div className="metric-content">
             <h3>{overdueTasks.length}</h3>
             <p>Atrasadas</p>
