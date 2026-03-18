@@ -329,12 +329,15 @@ const Kanban = () => {
           statusType: typeof task.status,
           statusLength: task.status ? task.status.length : 'null'
         });
+        
+        // Log direto do status
+        console.log(`Status da tarefa ${task.id}: "${task.status}" (tipo: ${typeof task.status})`);
       });
       
-      // Garantir que todas as tarefas tenham status "demanda" se vierem sem status
+      // Garantir que TODAS as tarefas do CSV tenham status "demanda"
       const tasksWithStatus = uploadedTasks.map(task => ({
         ...task,
-        status: task.status || 'demanda'
+        status: 'demanda' // Força status "demanda" para todas as tarefas do CSV
       }));
       
       console.log('Tarefas com status corrigido:', tasksWithStatus);
