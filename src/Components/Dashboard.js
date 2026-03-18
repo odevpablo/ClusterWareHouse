@@ -137,7 +137,7 @@ const Dashboard = ({ onBack }) => {
           <button className="back-btn" onClick={onBack}>
             ← Voltar
           </button>
-          <h1>📊 Dashboard de Desempenho</h1>
+          <h1>Dashboard de Desempenho</h1>
         </div>
         <div className="header-controls">
           <select 
@@ -151,7 +151,7 @@ const Dashboard = ({ onBack }) => {
             <option value="today">Hoje</option>
           </select>
           <button className="refresh-btn" onClick={loadTasks}>
-            🔄 Atualizar
+            Atualizar
           </button>
         </div>
       </div>
@@ -166,7 +166,7 @@ const Dashboard = ({ onBack }) => {
       {/* Cards principais */}
       <div className="metrics-grid">
         <div className="metric-card primary">
-          <div className="metric-icon">📋</div>
+          <div className="metric-icon">T</div>
           <div className="metric-content">
             <h3>{totalTasks}</h3>
             <p>Total de Tarefas</p>
@@ -174,7 +174,7 @@ const Dashboard = ({ onBack }) => {
         </div>
 
         <div className="metric-card success">
-          <div className="metric-icon">✅</div>
+          <div className="metric-icon">C</div>
           <div className="metric-content">
             <h3>{tasksByStatus.feito}</h3>
             <p>Concluídas</p>
@@ -183,7 +183,7 @@ const Dashboard = ({ onBack }) => {
         </div>
 
         <div className="metric-card warning">
-          <div className="metric-icon">⏳</div>
+          <div className="metric-icon">E</div>
           <div className="metric-content">
             <h3>{tasksByStatus['em-andamento']}</h3>
             <p>Em Andamento</p>
@@ -191,7 +191,7 @@ const Dashboard = ({ onBack }) => {
         </div>
 
         <div className="metric-card danger" onClick={() => setShowOverdueModal(true)} style={{ cursor: 'pointer' }}>
-          <div className="metric-icon">⚠️</div>
+          <div className="metric-icon">A</div>
           <div className="metric-content">
             <h3>{overdueTasks.length}</h3>
             <p>Atrasadas</p>
@@ -203,7 +203,7 @@ const Dashboard = ({ onBack }) => {
       <div className="charts-grid">
         {/* Status Distribution */}
         <div className="chart-card">
-          <h3>📊 Distribuição por Status</h3>
+          <h3>Distribuição por Status</h3>
           <div className="status-chart">
             {Object.entries(tasksByStatus).map(([status, count]) => {
               const percentage = totalTasks > 0 ? Math.round((count / totalTasks) * 100) : 0;
@@ -238,7 +238,7 @@ const Dashboard = ({ onBack }) => {
 
         {/* Priority Distribution */}
         <div className="chart-card">
-          <h3>🎯 Distribuição por Prioridade</h3>
+          <h3>Distribuição por Prioridade</h3>
           <div className="priority-chart">
             {Object.entries(tasksByPriority).map(([priority, count]) => {
               const percentage = totalTasks > 0 ? Math.round((count / totalTasks) * 100) : 0;
@@ -274,7 +274,7 @@ const Dashboard = ({ onBack }) => {
       <div className="rankings-grid">
         {/* Top Perfis */}
         <div className="ranking-card">
-          <h3>👥 Top Perfis</h3>
+          <h3>Top Perfis</h3>
           <div className="ranking-list">
             {sortedPerfis.length > 0 ? (
               sortedPerfis.map(([perfil, count], index) => (
@@ -292,7 +292,7 @@ const Dashboard = ({ onBack }) => {
 
         {/* Top Unidades */}
         <div className="ranking-card">
-          <h3>🏢 Top Unidades</h3>
+          <h3>Top Unidades</h3>
           <div className="ranking-list">
             {sortedUnidades.length > 0 ? (
               sortedUnidades.map(([unidade, count], index) => (
@@ -311,7 +311,7 @@ const Dashboard = ({ onBack }) => {
 
       {/* Resumo Detalhado */}
       <div className="summary-card">
-        <h3>📈 Resumo de Desempenho</h3>
+        <h3>Resumo de Desempenho</h3>
         <div className="summary-grid">
           <div className="summary-item">
             <label>Taxa de Conclusão:</label>
@@ -339,7 +339,7 @@ const Dashboard = ({ onBack }) => {
         <div className="modal-overlay">
           <div className="modal-content">
             <div className="modal-header">
-              <h2>📋 Tarefas Atrasadas por Indicador</h2>
+              <h2>Tarefas Atrasadas por Indicador</h2>
               <button className="close-btn" onClick={() => setShowOverdueModal(false)}>
                 ×
               </button>
@@ -356,10 +356,10 @@ const Dashboard = ({ onBack }) => {
                       {tasks.map(task => (
                         <div key={task.id} className="overdue-task-item">
                           <div className="task-info">
-                            <span className="task-imei">📱 {task.imei}</span>
-                            <span className="task-unidade">🏢 {task.unidade}</span>
-                            <span className="task-perfil">👤 {task.perfil}</span>
-                            <span className="task-prazo">📅 {task.prazo}</span>
+                            <span className="task-imei">{task.imei}</span>
+                            <span className="task-unidade">{task.unidade}</span>
+                            <span className="task-perfil">{task.perfil}</span>
+                            <span className="task-prazo">{task.prazo}</span>
                             <span className="task-priority priority-badge" style={{ 
                               backgroundColor: task.priority === 'alta' ? '#e74c3c' : 
                                                task.priority === 'media' ? '#f39c12' : '#27ae60'
@@ -368,10 +368,10 @@ const Dashboard = ({ onBack }) => {
                             </span>
                           </div>
                           {task.numero_chamado && (
-                            <span className="task-chamado">📞 {task.numero_chamado}</span>
+                            <span className="task-chamado">{task.numero_chamado}</span>
                           )}
                           {task.observacao && (
-                            <p className="task-observacao">📝 {task.observacao}</p>
+                            <p className="task-observacao">{task.observacao}</p>
                           )}
                         </div>
                       ))}
@@ -380,7 +380,7 @@ const Dashboard = ({ onBack }) => {
                 ))
               ) : (
                 <div className="no-overdue-tasks">
-                  <p>✅ Nenhuma tarefa atrasada encontrada!</p>
+                  <p>Nenhuma tarefa atrasada encontrada!</p>
                 </div>
               )}
             </div>
