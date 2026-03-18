@@ -37,7 +37,7 @@
       "react-app/jest"
     ]
   },
-  "proxy": "https://connatural-tammera-leftwardly.ngrok-free.dev",
+  "proxy": "https://wharesimpress.online",
   "devDependencies": {
     "customize-cra": "^1.0.0",
     "react-app-rewired": "^2.2.1"

@@ -1,10 +1,10 @@
 // Configuração da API
 // URL base da API
 // 1. Se existir uma variável de ambiente REACT_APP_API_URL, ela tem prioridade
-// 2. Caso contrário, usa localhost como padrão (inclusive em produção)
+// 2. Caso contrário, usa a API de produção
 const API_BASE_URL_RAW = process.env.REACT_APP_API_URL 
   ? String(process.env.REACT_APP_API_URL).trim()
-  : 'http://127.0.0.1:8000';
+  : 'https://wharesimpress.online';
 const API_BASE_URL = API_BASE_URL_RAW.replace(/\/$/, '');
 
 // Base separada para o endpoint de QR, se desejado
@@ -21,8 +21,8 @@ const API_ENDPOINTS = {
   CLUSTERS: `${baseApi}/clusters`,
   CLUSTER_QRCODE: (clusterId) => `${baseQr}/clusters/${encodeURIComponent(String(clusterId))}/qrcode`,
   PROCESSAR_CSV: `${baseApi}/processar-csv`,
-  TAREFAS: `${baseApi}/tarefas`,
-  TAREFAS_UPLOAD: `${baseApi}/tarefas/upload`
+  TAREFAS: `${baseApi}/api/tarefas`,
+  TAREFAS_UPLOAD: `${baseApi}/api/tarefas/upload`
 };
 
 const config = {

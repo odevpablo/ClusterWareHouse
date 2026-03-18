@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './Kanban.css';
 import config from '../config';
+import Dashboard from './Dashboard';
 
 const Kanban = () => {
   const [tasks, setTasks] = useState([]);
@@ -29,6 +30,7 @@ const Kanban = () => {
   const [csvError, setCsvError] = useState('');
   const [csvSuccess, setCsvSuccess] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [showDashboard, setShowDashboard] = useState(false);
 
   const perfis = [
     'Motorista',
@@ -442,7 +444,7 @@ const Kanban = () => {
       (task.title && task.title.toLowerCase().includes(searchLower)) ||
       (task.imei && task.imei.toLowerCase().includes(searchLower)) ||
       (task.unidade && task.unidade.toLowerCase().includes(searchLower)) ||
-      (task.numeroChamado && task.numeroChamado.toLowerCase().includes(searchLower)) ||
+      ((task.numero_chamado || task.numeroChamado) && (task.numero_chamado || task.numeroChamado).toLowerCase().includes(searchLower)) ||
       (task.perfil && task.perfil.toLowerCase().includes(searchLower)) ||
       (task.observacao && task.observacao.toLowerCase().includes(searchLower))
     );
@@ -473,401 +475,414 @@ const Kanban = () => {
 
   return (
     <div className="kanban-container">
-      <div className="kanban-header">
-        <h2>Kanban de Processos</h2>
-        <div className="header-actions">
-          <div className="search-container">
-            <input
-              type="text"
-              placeholder="Pesquisar por palavras-chave..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
-            />
-            {searchTerm && (
+      {showDashboard ? (
+        <Dashboard onBack={() => setShowDashboard(false)} />
+      ) : (
+        <>
+          <div className="kanban-header">
+            <h2>Kanban de Processos</h2>
+            <div className="header-actions">
+              <div className="search-container">
+                <input
+                  type="text"
+                  placeholder="Pesquisar por palavras-chave..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="search-input"
+                />
+                {searchTerm && (
+                  <button 
+                    className="clear-search-btn"
+                    onClick={() => setSearchTerm('')}
+                    title="Limpar pesquisa"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
               <button 
-                className="clear-search-btn"
-                onClick={() => setSearchTerm('')}
-                title="Limpar pesquisa"
+                className="dashboard-btn"
+                onClick={() => setShowDashboard(true)}
+                title="Ver dashboard de desempenho"
+              >
+                📊 Dashboard
+              </button>
+              <button className="add-task-btn" onClick={() => setShowAddForm(true)}>
+                + Nova Tarefa
+              </button>
+            </div>
+          </div>
+
+          {/* Mensagens de erro e loading */}
+          {error && (
+            <div className="error-banner" style={{ 
+              backgroundColor: '#e74c3c', 
+              color: 'white', 
+              padding: '10px', 
+              margin: '10px 0', 
+              borderRadius: '5px',
+              textAlign: 'center'
+            }}>
+              {error}
+              <button 
+                onClick={() => setError('')}
+                style={{ 
+                  background: 'none', 
+                  border: 'none', 
+                  color: 'white', 
+                  marginLeft: '10px', 
+                  cursor: 'pointer',
+                  fontSize: '16px'
+                }}
               >
                 ×
               </button>
-            )}
-          </div>
-          <button className="add-task-btn" onClick={() => setShowAddForm(true)}>
-            + Nova Tarefa
-          </button>
-        </div>
-      </div>
+            </div>
+          )}
 
-      {/* Mensagens de erro e loading */}
-      {error && (
-        <div className="error-banner" style={{ 
-          backgroundColor: '#e74c3c', 
-          color: 'white', 
-          padding: '10px', 
-          margin: '10px 0', 
-          borderRadius: '5px',
-          textAlign: 'center'
-        }}>
-          {error}
-          <button 
-            onClick={() => setError('')}
-            style={{ 
-              background: 'none', 
-              border: 'none', 
-              color: 'white', 
-              marginLeft: '10px', 
-              cursor: 'pointer',
-              fontSize: '16px'
-            }}
-          >
-            ×
-          </button>
-        </div>
-      )}
-
-      {initialLoading ? (
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          height: '200px',
-          fontSize: '18px',
-          color: '#666'
-        }}>
-          Carregando tarefas...
-        </div>
-      ) : (
-        <>
-        {showAddForm && (
-        <div className="add-task-modal">
-          <div className="modal-content">
-            <h3>Nova Tarefa</h3>
-            <div className="form-group">
-              <label>Título:</label>
-              <input
-                type="text"
-                name="title"
-                value={newTask.title}
-                onChange={handleInputChange}
-                placeholder="Digite o título da tarefa"
-              />
-            </div>
-            <div className="form-row">
-              <div className="form-group">
-                <label>IMEI:</label>
-                <input
-                  type="text"
-                  name="imei"
-                  value={newTask.imei}
-                  onChange={handleInputChange}
-                  placeholder="123456789012345"
-                />
-              </div>
-              <div className="form-group">
-                <label>Unidade:</label>
-                <input
-                  type="text"
-                  name="unidade"
-                  value={newTask.unidade}
-                  onChange={handleInputChange}
-                  placeholder="UNIDADE-001"
-                />
-              </div>
-            </div>
-            <div className="form-row">
-              <div className="form-group">
-                <label>Número do Task:</label>
-                <input
-                  type="text"
-                  name="numeroChamado"
-                  value={newTask.numeroChamado}
-                  onChange={handleInputChange}
-                  placeholder="CH-000001"
-                />
-              </div>
-              <div className="form-group">
-                <label>Prazo:</label>
-                <input
-                  type="date"
-                  name="prazo"
-                  value={newTask.prazo}
-                  onChange={handleInputChange}
-                />
-              </div>
-            </div>
-            <div className="form-row">
-              <div className="form-group">
-                <label>Prioridade:</label>
-                <select
-                  name="priority"
-                  value={newTask.priority}
-                  onChange={handleInputChange}
-                >
-                  <option value="baixa">Baixa</option>
-                  <option value="media">Média</option>
-                  <option value="alta">Alta</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Perfil:</label>
-                <select
-                  name="perfil"
-                  value={newTask.perfil}
-                  onChange={handleInputChange}
-                  required
-                >
-                  <option value="">Selecione um perfil</option>
-                  {perfis.map(perfil => (
-                    <option key={perfil} value={perfil}>
-                      {perfil}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="form-group">
-              <label>Observação:</label>
-              <textarea
-                name="observacao"
-                value={newTask.observacao}
-                onChange={handleInputChange}
-                placeholder="Adicione observações..."
-                rows="3"
-              />
-            </div>
-            
-            {/* Seção de Upload CSV */}
-            <div className="csv-upload-section" style={{ 
-              borderTop: '1px solid #ddd', 
-              paddingTop: '20px', 
-              marginTop: '20px' 
+          {initialLoading ? (
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'center', 
+              alignItems: 'center', 
+              height: '200px',
+              fontSize: '18px',
+              color: '#666'
             }}>
-              <h4 style={{ marginBottom: '15px', color: '#333' }}>
-                📁 Importar Tarefas em Massa (CSV)
-              </h4>
-              
-              <div className="form-group">
-                <label>Selecione o arquivo CSV:</label>
-                <input
-                  id="csv-file-input"
-                  type="file"
-                  accept=".csv"
-                  onChange={(e) => {
-                    setCsvFile(e.target.files[0]);
-                    setCsvError('');
-                    setCsvSuccess('');
-                  }}
-                  style={{ marginBottom: '10px' }}
-                />
-              </div>
-              
-              {csvFile && (
-                <div style={{ marginBottom: '10px', fontSize: '14px', color: '#666' }}>
-                  Arquivo selecionado: <strong>{csvFile.name}</strong>
+              Carregando tarefas...
+            </div>
+          ) : (
+            <>
+            {showAddForm && (
+            <div className="add-task-modal">
+              <div className="modal-content">
+                <h3>Nova Tarefa</h3>
+                <div className="form-group">
+                  <label>Título:</label>
+                  <input
+                    type="text"
+                    name="title"
+                    value={newTask.title}
+                    onChange={handleInputChange}
+                    placeholder="Digite o título da tarefa"
+                  />
                 </div>
-              )}
-              
-              {csvError && (
-                <div style={{ 
-                  color: '#e74c3c', 
-                  marginBottom: '10px', 
-                  fontSize: '14px',
-                  padding: '8px',
-                  backgroundColor: '#ffe6e6',
-                  borderRadius: '4px'
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>IMEI:</label>
+                    <input
+                      type="text"
+                      name="imei"
+                      value={newTask.imei}
+                      onChange={handleInputChange}
+                      placeholder="123456789012345"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Unidade:</label>
+                    <input
+                      type="text"
+                      name="unidade"
+                      value={newTask.unidade}
+                      onChange={handleInputChange}
+                      placeholder="UNIDADE-001"
+                    />
+                  </div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Número do Task:</label>
+                    <input
+                      type="text"
+                      name="numeroChamado"
+                      value={newTask.numeroChamado}
+                      onChange={handleInputChange}
+                      placeholder="CH-000001"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Prazo:</label>
+                    <input
+                      type="date"
+                      name="prazo"
+                      value={newTask.prazo}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Prioridade:</label>
+                    <select
+                      name="priority"
+                      value={newTask.priority}
+                      onChange={handleInputChange}
+                    >
+                      <option value="baixa">Baixa</option>
+                      <option value="media">Média</option>
+                      <option value="alta">Alta</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Perfil:</label>
+                    <select
+                      name="perfil"
+                      value={newTask.perfil}
+                      onChange={handleInputChange}
+                      required
+                    >
+                      <option value="">Selecione um perfil</option>
+                      {perfis.map(perfil => (
+                        <option key={perfil} value={perfil}>
+                          {perfil}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>Observação:</label>
+                  <textarea
+                    name="observacao"
+                    value={newTask.observacao}
+                    onChange={handleInputChange}
+                    placeholder="Adicione observações..."
+                    rows="3"
+                  />
+                </div>
+                
+                {/* Seção de Upload CSV */}
+                <div className="csv-upload-section" style={{ 
+                  borderTop: '1px solid #ddd', 
+                  paddingTop: '20px', 
+                  marginTop: '20px' 
                 }}>
-                  ⚠️ {csvError}
-                </div>
-              )}
-              
-              {csvSuccess && (
-                <div style={{ 
-                  color: '#27ae60', 
-                  marginBottom: '10px', 
-                  fontSize: '14px',
-                  padding: '8px',
-                  backgroundColor: '#e8f8f5',
-                  borderRadius: '4px'
-                }}>
-                  ✅ {csvSuccess}
-                </div>
-              )}
-              
-              <div className="csv-info" style={{ 
-                fontSize: '12px', 
-                color: '#666', 
-                marginBottom: '15px',
-                padding: '10px',
-                backgroundColor: '#f8f9fa',
-                borderRadius: '4px'
-              }}>
-                <strong>Formato esperado do CSV:</strong><br/>
-                Colunas: title, imei, unidade, prazo, perfil, priority, observacao, numero_chamado, status<br/>
-                <strong>Obrigatórios:</strong> title, imei, unidade, prazo, perfil
-              </div>
-              
-              <div style={{ marginBottom: '15px' }}>
-                <button 
-                  onClick={() => {
-                    const csvContent = `title,imei,unidade,prazo,perfil,priority,observacao,numero_chamado,status
+                  <h4 style={{ marginBottom: '15px', color: '#333' }}>
+                    📁 Importar Tarefas em Massa (CSV)
+                  </h4>
+                  
+                  <div className="form-group">
+                    <label>Selecione o arquivo CSV:</label>
+                    <input
+                      id="csv-file-input"
+                      type="file"
+                      accept=".csv"
+                      onChange={(e) => {
+                        setCsvFile(e.target.files[0]);
+                        setCsvError('');
+                        setCsvSuccess('');
+                      }}
+                      style={{ marginBottom: '10px' }}
+                    />
+                  </div>
+                  
+                  {csvFile && (
+                    <div style={{ marginBottom: '10px', fontSize: '14px', color: '#666' }}>
+                      Arquivo selecionado: <strong>{csvFile.name}</strong>
+                    </div>
+                  )}
+                  
+                  {csvError && (
+                    <div style={{ 
+                      color: '#e74c3c', 
+                      marginBottom: '10px', 
+                      fontSize: '14px',
+                      padding: '8px',
+                      backgroundColor: '#ffe6e6',
+                      borderRadius: '4px'
+                    }}>
+                      ⚠️ {csvError}
+                    </div>
+                  )}
+                  
+                  {csvSuccess && (
+                    <div style={{ 
+                      color: '#27ae60', 
+                      marginBottom: '10px', 
+                      fontSize: '14px',
+                      padding: '8px',
+                      backgroundColor: '#e8f8f5',
+                      borderRadius: '4px'
+                    }}>
+                      ✅ {csvSuccess}
+                    </div>
+                  )}
+                  
+                  <div className="csv-info" style={{ 
+                    fontSize: '12px', 
+                    color: '#666', 
+                    marginBottom: '15px',
+                    padding: '10px',
+                    backgroundColor: '#f8f9fa',
+                    borderRadius: '4px'
+                  }}>
+                    <strong>Formato esperado do CSV:</strong><br/>
+                    Colunas: title, imei, unidade, prazo, perfil, priority, observacao, numero_chamado, status<br/>
+                    <strong>Obrigatórios:</strong> title, imei, unidade, prazo, perfil
+                  </div>
+                  
+                  <div style={{ marginBottom: '15px' }}>
+                    <button 
+                      onClick={() => {
+                        const csvContent = `title,imei,unidade,prazo,perfil,priority,observacao,numero_chamado,status
 Instalação Terminal 01,123456789012345,Matriz São Paulo,2024-12-31,tecnico,media,Instalar novo terminal,CH-2024-001,demanda
 Manutenção Equipamento,987654321098765,Filial Rio,2024-11-30,tecnico,alta,Manutenção preventiva,CH-2024-002,demanda`;
-                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
-                    const link = document.createElement('a');
-                    link.href = URL.createObjectURL(blob);
-                    link.download = 'exemplo_tarefas.csv';
-                    link.click();
-                  }}
-                  style={{
-                    padding: '6px 12px',
-                    backgroundColor: '#3498db',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                    marginRight: '10px'
-                  }}
-                >
-                  📥 Baixar Exemplo CSV
-                </button>
-              </div>
-              
-              <button 
-                className="csv-upload-btn"
-                onClick={handleCsvUpload}
-                disabled={!csvFile || csvLoading}
-                style={{
-                  padding: '8px 16px',
-                  backgroundColor: csvFile && !csvLoading ? '#27ae60' : '#95a5a6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: csvFile && !csvLoading ? 'pointer' : 'not-allowed',
-                  fontSize: '14px'
-                }}
-              >
-                {csvLoading ? 'Importando...' : 'Importar CSV'}
-              </button>
-            </div>
-            
-            <div className="form-actions">
-              {error && (
-                <div className="error-message" style={{ color: '#e74c3c', marginBottom: '10px', fontSize: '14px' }}>
-                  {error}
-                </div>
-              )}
-              <button className="cancel-btn" onClick={() => setShowAddForm(false)} disabled={loading}>
-                Cancelar
-              </button>
-              <button className="save-btn" onClick={addTask} disabled={loading}>
-                {loading ? 'Salvando...' : 'Salvar Tarefa'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      <div className="kanban-board">
-        {columns.map(column => (
-          <div
-            key={column.id}
-            className="kanban-column"
-            onDragOver={handleDragOver}
-            onDrop={(e) => handleDrop(e, column.id)}
-          >
-            <div className="column-header" style={{ backgroundColor: column.color }}>
-              <h3>{column.title}</h3>
-              <span className="task-count">
-                {filterTasks(tasks).filter(task => task.status === column.id).length}
-              </span>
-            </div>
-            
-            <div className="column-content">
-              {filterTasks(tasks)
-                .filter(task => task.status === column.id)
-                .map(task => (
-                  <div
-                    key={task.id}
-                    className="task-card"
-                    draggable
-                    onDragStart={() => handleDragStart(task)}
+                        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+                        const link = document.createElement('a');
+                        link.href = URL.createObjectURL(blob);
+                        link.download = 'exemplo_tarefas.csv';
+                        link.click();
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: '#3498db',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        marginRight: '10px'
+                      }}
+                    >
+                      📥 Baixar Exemplo CSV
+                    </button>
+                  </div>
+                  
+                  <button 
+                    className="csv-upload-btn"
+                    onClick={handleCsvUpload}
+                    disabled={!csvFile || csvLoading}
+                    style={{
+                      padding: '8px 16px',
+                      backgroundColor: csvFile && !csvLoading ? '#27ae60' : '#95a5a6',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: csvFile && !csvLoading ? 'pointer' : 'not-allowed',
+                      fontSize: '14px'
+                    }}
                   >
-                    <div className="task-header">
-                      <span 
-                        className="priority-badge"
-                        style={{ backgroundColor: getPriorityColor(task.priority) }}
-                      >
-                        {task.priority.toUpperCase()}
-                      </span>
-                      <div className="task-actions">
-                        {task.status === 'em-andamento' && (
-                          <button 
-                            className="edit-btn"
-                            onClick={() => handleEditObservacao(task)}
-                            title="Editar observação"
-                          >
-                            ✏️
-                          </button>
-                        )}
-                        <button 
-                          className="delete-btn"
-                          onClick={() => deleteTask(task.id)}
-                        >
-                          ×
-                        </button>
-                      </div>
+                    {csvLoading ? 'Importando...' : 'Importar CSV'}
+                  </button>
+                </div>
+                
+                <div className="form-actions">
+                  {error && (
+                    <div className="error-message" style={{ color: '#e74c3c', marginBottom: '10px', fontSize: '14px' }}>
+                      {error}
                     </div>
-                    <div className="task-content">
-                      <p><strong>{task.title}</strong></p>
-                      <div className="task-details">
-                        <span 
-                          className="detail-item imei-clickable"
-                          onClick={(e) => copyToClipboard(task.imei, e)}
-                          title="Clique para copiar o IMEI"
-                        >
-                          📱 {task.imei}
-                        </span>
-                        <span className="detail-item">🏢 {task.unidade}</span>
-                        <span className="detail-item">📞 {task.numeroChamado}</span>
-                        <span className="detail-item">👤 {task.perfil}</span>
-                        <span className="detail-item">📅 {task.prazo}</span>
-                      </div>
-                      {task.observacao && (
-                        <div className="task-observacao">
-                          {editingTask === task.id ? (
-                            <div className="edit-observacao">
-                              <textarea
-                                value={editObservacao}
-                                onChange={(e) => setEditObservacao(e.target.value)}
-                                placeholder="Adicione observações..."
-                                rows="3"
-                                autoFocus
-                              />
-                              <div className="edit-actions">
-                                <button className="save-edit-btn" onClick={saveEditObservacao}>
-                                  Salvar
-                                </button>
-                                <button className="cancel-edit-btn" onClick={cancelEditObservacao}>
-                                  Cancelar
-                                </button>
-                              </div>
+                  )}
+                  <button className="cancel-btn" onClick={() => setShowAddForm(false)} disabled={loading}>
+                    Cancelar
+                  </button>
+                  <button className="save-btn" onClick={addTask} disabled={loading}>
+                    {loading ? 'Salvando...' : 'Salvar Tarefa'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <div className="kanban-board">
+            {columns.map(column => (
+              <div
+                key={column.id}
+                className="kanban-column"
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, column.id)}
+              >
+                <div className="column-header" style={{ backgroundColor: column.color }}>
+                  <h3>{column.title}</h3>
+                  <span className="task-count">
+                    {filterTasks(tasks).filter(task => task.status === column.id).length}
+                  </span>
+                </div>
+                
+                <div className="column-content">
+                  {filterTasks(tasks)
+                    .filter(task => task.status === column.id)
+                    .map(task => (
+                      <div
+                        key={task.id}
+                        className="task-card"
+                        draggable
+                        onDragStart={() => handleDragStart(task)}
+                      >
+                        <div className="task-header">
+                          <span 
+                            className="priority-badge"
+                            style={{ backgroundColor: getPriorityColor(task.priority) }}
+                          >
+                            {task.priority.toUpperCase()}
+                          </span>
+                          <div className="task-actions">
+                            {task.status === 'em-andamento' && (
+                              <button 
+                                className="edit-btn"
+                                onClick={() => handleEditObservacao(task)}
+                                title="Editar observação"
+                              >
+                                ✏️
+                              </button>
+                            )}
+                            <button 
+                              className="delete-btn"
+                              onClick={() => deleteTask(task.id)}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        </div>
+                        <div className="task-content">
+                          <p><strong>{task.title}</strong></p>
+                          <div className="task-details">
+                            <span 
+                              className="detail-item imei-clickable"
+                              onClick={(e) => copyToClipboard(task.imei, e)}
+                              title="Clique para copiar o IMEI"
+                            >
+                              📱 {task.imei}
+                            </span>
+                            <span className="detail-item">🏢 {task.unidade}</span>
+                            <span className="detail-item">📞 {task.numero_chamado || task.numeroChamado}</span>
+                            <span className="detail-item">👤 {task.perfil}</span>
+                            <span className="detail-item">📅 {task.prazo}</span>
+                          </div>
+                          {task.observacao && (
+                            <div className="task-observacao">
+                              {editingTask === task.id ? (
+                                <div className="edit-observacao">
+                                  <textarea
+                                    value={editObservacao}
+                                    onChange={(e) => setEditObservacao(e.target.value)}
+                                    placeholder="Adicione observações..."
+                                    rows="3"
+                                    autoFocus
+                                  />
+                                  <div className="edit-actions">
+                                    <button className="save-edit-btn" onClick={saveEditObservacao}>
+                                      Salvar
+                                    </button>
+                                    <button className="cancel-edit-btn" onClick={cancelEditObservacao}>
+                                      Cancelar
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <small>📝 {task.observacao}</small>
+                              )}
                             </div>
-                          ) : (
-                            <small>📝 {task.observacao}</small>
                           )}
                         </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-            </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-    </>
+        </>
+          )}
+        </>
       )}
     </div>
   );
