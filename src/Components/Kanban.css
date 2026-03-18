@@ -484,4 +484,90 @@
   .form-row {
     grid-template-columns: 1fr;
   }
+  
+  /* Melhorias no modal para mobile */
+  .modal-content {
+    width: 95%;
+    max-width: none;
+    margin: 10px;
+    padding: 20px;
+    max-height: 95vh;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+    gap: 10px;
+    position: sticky;
+    bottom: 0;
+    background: white;
+    padding: 15px 0;
+    margin-top: 20px;
+    border-top: 2px solid #f1f5f9;
+  }
+  
+  .cancel-btn,
+  .save-btn {
+    width: 100%;
+    padding: 12px 20px;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .kanban-container {
+    padding: 10px;
+    margin-top: 80px;
+  }
+  
+  .modal-content {
+    width: 98%;
+    margin: 5px;
+    padding: 15px;
+    border-radius: 8px;
+  }
+  
+  .form-group {
+    margin-bottom: 12px;
+  }
+  
+  .form-group label {
+    font-size: 0.85rem;
+    margin-bottom: 4px;
+  }
+  
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    padding: 8px 10px;
+    font-size: 0.9rem;
+  }
+  
+  .form-actions {
+    padding: 10px 0;
+    gap: 8px;
+    margin-top: 15px;
+  }
+  
+  .cancel-btn,
+  .save-btn {
+    padding: 10px 16px;
+    font-size: 0.9rem;
+  }
+  
+  /* Garantir que os botões sempre visíveis */
+  .add-task-modal {
+    padding: 10px;
+  }
+  
+  .modal-content {
+    display: flex;
+    flex-direction: column;
+    max-height: 98vh;
+  }
+  
+  /* Área de formulário rolável */
+  .modal-content > *:not(.form-actions) {
+    overflow-y: auto;
+    flex: 1;
+  }
 }
