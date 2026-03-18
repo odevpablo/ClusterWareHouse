@@ -320,8 +320,27 @@ const Kanban = () => {
       const uploadedTasks = await response.json();
       console.log('Tasks uploaded:', uploadedTasks);
       
+      // Verificar se as tarefas vieram com status correto
+      uploadedTasks.forEach((task, index) => {
+        console.log(`Tarefa ${index + 1}:`, {
+          id: task.id,
+          title: task.title,
+          status: task.status,
+          statusType: typeof task.status,
+          statusLength: task.status ? task.status.length : 'null'
+        });
+      });
+      
+      // Garantir que todas as tarefas tenham status "demanda" se vierem sem status
+      const tasksWithStatus = uploadedTasks.map(task => ({
+        ...task,
+        status: task.status || 'demanda'
+      }));
+      
+      console.log('Tarefas com status corrigido:', tasksWithStatus);
+      
       // Adicionar novas tarefas ao estado local
-      setTasks([...tasks, ...uploadedTasks]);
+      setTasks([...tasks, ...tasksWithStatus]);
       
       setCsvSuccess(`Importadas ${uploadedTasks.length} tarefas com sucesso!`);
       setCsvFile(null);
@@ -449,6 +468,25 @@ const Kanban = () => {
       (task.observacao && task.observacao.toLowerCase().includes(searchLower))
     );
   };
+
+  // Executar debug quando as tarefas mudam
+  useEffect(() => {
+    if (tasks.length > 0) {
+      const statusCounts = {};
+      tasks.forEach(task => {
+        const status = task.status || 'no-status';
+        statusCounts[status] = (statusCounts[status] || 0) + 1;
+      });
+      console.log('Contagem de tarefas por status:', statusCounts);
+      
+      // Verificar especificamente tarefas com status "demanda"
+      const demandaTasks = tasks.filter(task => task.status === 'demanda');
+      console.log('Tarefas com status "demanda":', demandaTasks.length);
+      if (demandaTasks.length > 0) {
+        console.log('Primeiras 3 tarefas em demanda:', demandaTasks.slice(0, 3));
+      }
+    }
+  }, [tasks]);
 
   const copyToClipboard = async (text, event) => {
     try {
@@ -718,7 +756,8 @@ const Kanban = () => {
                   }}>
                     <strong>Formato esperado do CSV:</strong><br/>
                     Colunas: title, imei, unidade, prazo, perfil, priority, observacao, numero_chamado, status<br/>
-                    <strong>Obrigatórios:</strong> title, imei, unidade, prazo, perfil
+                    <strong>Obrigatórios:</strong> title, imei, unidade, prazo, perfil<br/>
+                    <strong>Importante:</strong> Se não especificado, o status será "demanda" automaticamente
                   </div>
                   
                   <div style={{ marginBottom: '15px' }}>
