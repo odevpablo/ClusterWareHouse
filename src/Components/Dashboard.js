@@ -7,6 +7,7 @@ const Dashboard = ({ onBack }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedPeriod, setSelectedPeriod] = useState('all');
+  const [showOverdueModal, setShowOverdueModal] = useState(false);
 
   useEffect(() => {
     loadTasks();
@@ -79,7 +80,20 @@ const Dashboard = ({ onBack }) => {
   const overdueTasks = filteredTasks.filter(task => {
     if (!task.prazo || task.status === 'feito') return false;
     return new Date(task.prazo) < new Date();
-  }).length;
+  });
+
+  // Agrupar tarefas atrasadas por título/indicador
+  const getOverdueTasksByTitle = () => {
+    const grouped = {};
+    overdueTasks.forEach(task => {
+      const title = task.title || 'Sem Título';
+      if (!grouped[title]) {
+        grouped[title] = [];
+      }
+      grouped[title].push(task);
+    });
+    return grouped;
+  };
 
   // Top perfis
   const topPerfis = {};
@@ -176,10 +190,10 @@ const Dashboard = ({ onBack }) => {
           </div>
         </div>
 
-        <div className="metric-card danger">
+        <div className="metric-card danger" onClick={() => setShowOverdueModal(true)} style={{ cursor: 'pointer' }}>
           <div className="metric-icon">⚠️</div>
           <div className="metric-content">
-            <h3>{overdueTasks}</h3>
+            <h3>{overdueTasks.length}</h3>
             <p>Atrasadas</p>
           </div>
         </div>
@@ -319,6 +333,66 @@ const Dashboard = ({ onBack }) => {
           </div>
         </div>
       </div>
+
+      {/* Modal de Tarefas Atrasadas por Indicador */}
+      {showOverdueModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2>📋 Tarefas Atrasadas por Indicador</h2>
+              <button className="close-btn" onClick={() => setShowOverdueModal(false)}>
+                ×
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              {Object.entries(getOverdueTasksByTitle()).length > 0 ? (
+                Object.entries(getOverdueTasksByTitle()).map(([title, tasks]) => (
+                  <div key={title} className="indicator-group">
+                    <h3 className="indicator-title">
+                      {title} ({tasks.length} {tasks.length === 1 ? 'tarefa' : 'tarefas'})
+                    </h3>
+                    <div className="tasks-list">
+                      {tasks.map(task => (
+                        <div key={task.id} className="overdue-task-item">
+                          <div className="task-info">
+                            <span className="task-imei">📱 {task.imei}</span>
+                            <span className="task-unidade">🏢 {task.unidade}</span>
+                            <span className="task-perfil">👤 {task.perfil}</span>
+                            <span className="task-prazo">📅 {task.prazo}</span>
+                            <span className="task-priority priority-badge" style={{ 
+                              backgroundColor: task.priority === 'alta' ? '#e74c3c' : 
+                                               task.priority === 'media' ? '#f39c12' : '#27ae60'
+                            }}>
+                              {task.priority.toUpperCase()}
+                            </span>
+                          </div>
+                          {task.numero_chamado && (
+                            <span className="task-chamado">📞 {task.numero_chamado}</span>
+                          )}
+                          {task.observacao && (
+                            <p className="task-observacao">📝 {task.observacao}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="no-overdue-tasks">
+                  <p>✅ Nenhuma tarefa atrasada encontrada!</p>
+                </div>
+              )}
+            </div>
+            
+            <div className="modal-footer">
+              <button className="close-modal-btn" onClick={() => setShowOverdueModal(false)}>
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -40,6 +40,7 @@
   "proxy": "https://wharesimpress.online",
   "devDependencies": {
     "customize-cra": "^1.0.0",
+    "http-proxy-middleware": "^3.0.5",
     "react-app-rewired": "^2.2.1"
   }
 }
