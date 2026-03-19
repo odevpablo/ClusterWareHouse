@@ -393,19 +393,6 @@ const Dashboard = ({ onBack }) => {
                   </div>
                   <span className="bar-label">Prioridade Alta</span>
                 </div>
-
-                {/* Tempo de Configuração */}
-                <div className="bar-group">
-                  <div className="bar-wrapper">
-                    <div 
-                      className="bar time-bar"
-                      style={{ height: `${Math.min(workTimeStats.totalHours * 2, 100)}%` }}
-                    >
-                      <span className="bar-value">{workTimeStats.formattedTotal}</span>
-                    </div>
-                  </div>
-                  <span className="bar-label">Tempo Config</span>
-                </div>
               </div>
             </div>
           </div>

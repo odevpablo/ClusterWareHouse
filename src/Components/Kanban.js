@@ -10,6 +10,10 @@ const Kanban = () => {
   const [initialLoading, setInitialLoading] = useState(true);
 
   const [draggedTask, setDraggedTask] = useState(null);
+  const [draggedTasks, setDraggedTasks] = useState([]);
+  const [selectedTasks, setSelectedTasks] = useState(new Set());
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
+
   const [showAddForm, setShowAddForm] = useState(false);
   const [newTask, setNewTask] = useState({
     title: '',
@@ -84,7 +88,82 @@ const Kanban = () => {
   };
 
   const handleDragStart = (task) => {
-    setDraggedTask(task);
+    if (selectedTasks.size > 0) {
+      // Se há tarefas selecionadas, arrasta todas
+      const selectedTasksArray = Array.from(selectedTasks);
+      const allTasks = selectedTasksArray.map(id => tasks.find(t => t.id === id)).filter(Boolean);
+      setDraggedTasks(allTasks);
+    } else {
+      // Senão, arrasta apenas a tarefa atual
+      setDraggedTask(task);
+    }
+  };
+
+  const handleTaskClick = (task, e) => {
+    if (e.ctrlKey || e.metaKey) {
+      // Ctrl/Cmd + Click para seleção múltipla
+      e.preventDefault();
+      const newSelected = new Set(selectedTasks);
+      if (newSelected.has(task.id)) {
+        newSelected.delete(task.id);
+      } else {
+        newSelected.add(task.id);
+      }
+      setSelectedTasks(newSelected);
+      setIsMultiSelectMode(newSelected.size > 0);
+    } else if (e.shiftKey && selectedTasks.size > 0) {
+      // Shift + Click para seleção por intervalo
+      e.preventDefault();
+      const lastSelected = Array.from(selectedTasks).pop();
+      const taskIndex = tasks.findIndex(t => t.id === task.id);
+      const lastIndex = tasks.findIndex(t => t.id === lastSelected);
+      
+      const start = Math.min(taskIndex, lastIndex);
+      const end = Math.max(taskIndex, lastIndex);
+      const newSelected = new Set(selectedTasks);
+      
+      for (let i = start; i <= end; i++) {
+        if (tasks[i].status === task.status) { // Apenas mesma coluna
+          newSelected.add(tasks[i].id);
+        }
+      }
+      setSelectedTasks(newSelected);
+      setIsMultiSelectMode(true);
+    } else {
+      // Click normal para copiar número do chamado
+      copyTaskNumber(task);
+    }
+  };
+
+  const copyTaskNumber = (task) => {
+    const numeroChamado = task.numero_chamado || task.numeroChamado;
+    if (numeroChamado) {
+      navigator.clipboard.writeText(numeroChamado).then(() => {
+        // Mostrar feedback visual
+        const originalTitle = task.title;
+        setTasks(tasks.map(t => 
+          t.id === task.id 
+            ? { ...t, title: '✓ Copiado!' }
+            : t
+        ));
+        
+        setTimeout(() => {
+          setTasks(tasks.map(t => 
+            t.id === task.id 
+              ? { ...t, title: originalTitle }
+              : t
+          ));
+        }, 1000);
+      }).catch(err => {
+        console.error('Erro ao copiar:', err);
+      });
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedTasks(new Set());
+    setIsMultiSelectMode(false);
+    setDraggedTasks([]);
   };
 
   const handleDragOver = (e) => {
@@ -93,51 +172,63 @@ const Kanban = () => {
 
   const handleDrop = async (e, columnId) => {
     e.preventDefault();
-    if (draggedTask) {
+    
+    const tasksToMove = draggedTasks.length > 0 ? draggedTasks : (draggedTask ? [draggedTask] : []);
+    
+    if (tasksToMove.length > 0) {
       try {
-        // Atualizar status no backend
-        const response = await fetch(`${config.TAREFAS}/${draggedTask.id}/status`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            status: columnId,
-            observacao: draggedTask.observacao
-          })
+        // Mover múltiplas tarefas
+        const updatePromises = tasksToMove.map(async (task) => {
+          const response = await fetch(`${config.TAREFAS}/${task.id}/status`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              status: columnId,
+              observacao: task.observacao
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error(`Erro ${response.status}`);
+          }
+
+          return response.json();
         });
 
-        if (!response.ok) {
-          throw new Error(`Erro ${response.status}`);
-        }
-
-        const savedTask = await response.json();
+        const updatedTasks = await Promise.all(updatePromises);
         
-        // Enviar webhook para diferentes colunas
-        if (columnId === 'a-fazer' && draggedTask.status !== 'a-fazer') {
-          sendWebhook(savedTask, 'DEMANDA');
-        } else if (columnId === 'em-andamento' && draggedTask.status !== 'em-andamento') {
-          sendWebhook(savedTask, 'EM_ANDAMENTO');
-        } else if (columnId === 'erro' && draggedTask.status !== 'erro') {
-          sendWebhook(savedTask, 'ERRO');
-        } else if (columnId === 'feito' && draggedTask.status !== 'feito') {
-          sendWebhook(savedTask, 'CONCLUIDO');
-        }
+        // Enviar webhooks para cada tarefa movida
+        updatedTasks.forEach(savedTask => {
+          const originalTask = tasksToMove.find(t => t.id === savedTask.id);
+          if (columnId === 'a-fazer' && originalTask.status !== 'a-fazer') {
+            sendWebhook(savedTask, 'DEMANDA');
+          } else if (columnId === 'em-andamento' && originalTask.status !== 'em-andamento') {
+            sendWebhook(savedTask, 'EM_ANDAMENTO');
+          } else if (columnId === 'erro' && originalTask.status !== 'erro') {
+            sendWebhook(savedTask, 'ERRO');
+          } else if (columnId === 'feito' && originalTask.status !== 'feito') {
+            sendWebhook(savedTask, 'CONCLUIDO');
+          }
+        });
         
         // Atualizar estado local
-        setTasks(tasks.map(task => 
-          task.id === draggedTask.id 
-            ? savedTask
-            : task
-        ));
+        setTasks(tasks.map(task => {
+          const updated = updatedTasks.find(ut => ut.id === task.id);
+          return updated ? updated : task;
+        }));
+        
+        // Limpar seleção
+        clearSelection();
       } catch (err) {
         console.error('Erro ao atualizar status:', err);
-        setError('Erro ao atualizar status da tarefa');
-        // Reverter para o status anterior em caso de erro
+        setError('Erro ao atualizar status das tarefas');
         return;
       }
       
       setDraggedTask(null);
+      setDraggedTasks([]);
     }
   };
 
@@ -531,38 +622,33 @@ const Kanban = () => {
       ) : (
         <>
           <div className="kanban-header">
-            <h2>Kanban de Processos</h2>
-            <div className="header-actions">
-              <div className="search-container">
-                <input
-                  type="text"
-                  placeholder="Pesquisar por palavras-chave..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="search-input"
-                />
-                {searchTerm && (
-                  <button 
-                    className="clear-search-btn"
-                    onClick={() => setSearchTerm('')}
-                    title="Limpar pesquisa"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-              <button 
-                className="dashboard-btn"
-                onClick={() => setShowDashboard(true)}
-                title="Ver dashboard de desempenho"
-              >
-                📊 Dashboard
-              </button>
-              <button className="add-task-btn" onClick={() => setShowAddForm(true)}>
-                + Nova Tarefa
-              </button>
+          <h1>Kanban de Tarefas</h1>
+          <div className="kanban-actions">
+            <div className="search-box">
+              <input
+                type="text"
+                placeholder="Pesquisar tarefas..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="search-input"
+              />
             </div>
+            <button className="add-task-btn" onClick={() => setShowAddForm(true)}>
+              Nova Tarefa
+            </button>
+            <button className="refresh-btn" onClick={loadTasks} disabled={loading}>
+              Atualizar
+            </button>
+            {isMultiSelectMode && (
+              <button className="clear-selection-btn" onClick={clearSelection}>
+                Limpar Seleção ({selectedTasks.size})
+              </button>
+            )}
+            <button className="dashboard-btn" onClick={() => setShowDashboard(!showDashboard)}>
+              Dashboard
+            </button>
           </div>
+        </div>
 
           {/* Mensagens de erro e loading */}
           {error && (
@@ -709,7 +795,7 @@ const Kanban = () => {
                   marginTop: '20px' 
                 }}>
                   <h4 style={{ marginBottom: '15px', color: '#333' }}>
-                    📁 Importar Tarefas em Massa (CSV)
+                    Importar Tarefas em Massa (CSV)
                   </h4>
                   
                   <div className="form-group">
@@ -742,7 +828,7 @@ const Kanban = () => {
                       backgroundColor: '#ffe6e6',
                       borderRadius: '4px'
                     }}>
-                      ⚠️ {csvError}
+                      {csvError}
                     </div>
                   )}
                   
@@ -755,7 +841,7 @@ const Kanban = () => {
                       backgroundColor: '#e8f8f5',
                       borderRadius: '4px'
                     }}>
-                      ✅ {csvSuccess}
+                      {csvSuccess}
                     </div>
                   )}
                   
@@ -856,9 +942,10 @@ Manutenção Equipamento,987654321098765,Filial Rio,2024-11-30,tecnico,alta,Manu
                     .map(task => (
                       <div
                         key={task.id}
-                        className="task-card"
+                        className={`task-card ${selectedTasks.has(task.id) ? 'selected' : ''}`}
                         draggable
                         onDragStart={() => handleDragStart(task)}
+                        onClick={(e) => handleTaskClick(task, e)}
                       >
                         <div className="task-header">
                           <span 
@@ -871,7 +958,10 @@ Manutenção Equipamento,987654321098765,Filial Rio,2024-11-30,tecnico,alta,Manu
                             {task.status === 'em-andamento' && (
                               <button 
                                 className="edit-btn"
-                                onClick={() => handleEditObservacao(task)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditObservacao(task);
+                                }}
                                 title="Editar observação"
                               >
                                 ✏️
@@ -879,7 +969,10 @@ Manutenção Equipamento,987654321098765,Filial Rio,2024-11-30,tecnico,alta,Manu
                             )}
                             <button 
                               className="delete-btn"
-                              onClick={() => deleteTask(task.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteTask(task.id);
+                              }}
                             >
                               ×
                             </button>
@@ -890,15 +983,27 @@ Manutenção Equipamento,987654321098765,Filial Rio,2024-11-30,tecnico,alta,Manu
                           <div className="task-details">
                             <span 
                               className="detail-item imei-clickable"
-                              onClick={(e) => copyToClipboard(task.imei, e)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                copyToClipboard(task.imei, e);
+                              }}
                               title="Clique para copiar o IMEI"
                             >
-                              📱 {task.imei}
+                              IMEI: {task.imei}
                             </span>
-                            <span className="detail-item">🏢 {task.unidade}</span>
-                            <span className="detail-item">📞 {task.numero_chamado || task.numeroChamado}</span>
-                            <span className="detail-item">👤 {task.perfil}</span>
-                            <span className="detail-item">📅 {task.prazo}</span>
+                            <span className="detail-item">Unidade: {task.unidade}</span>
+                            <span 
+                              className="detail-item chamado-clickable"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                copyTaskNumber(task);
+                              }}
+                              title="Clique para copiar o número do chamado"
+                            >
+                              Chamado: {task.numero_chamado || task.numeroChamado}
+                            </span>
+                            <span className="detail-item">Perfil: {task.perfil}</span>
+                            <span className="detail-item">Prazo: {task.prazo}</span>
                           </div>
                           {task.observacao && (
                             <div className="task-observacao">
