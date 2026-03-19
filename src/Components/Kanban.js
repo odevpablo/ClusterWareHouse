@@ -57,6 +57,16 @@ const Kanban = () => {
     loadTasks();
   }, []);
 
+  // Auto-refresh a cada 2 minutos
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadTasks();
+    }, 2 * 60 * 1000); // 2 minutos em milissegundos
+
+    // Limpar interval quando o componente for desmontado
+    return () => clearInterval(interval);
+  }, []);
+
   const loadTasks = async () => {
     try {
       const response = await fetch(config.TAREFAS);
