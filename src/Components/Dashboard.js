@@ -78,7 +78,7 @@ const Dashboard = ({ onBack }) => {
 
   // Tarefas atrasadas
   const overdueTasks = filteredTasks.filter(task => {
-    if (!task.prazo || task.status === 'feito' || task.status === 'erro') return false;
+    if (!task.prazo || task.status === 'feito') return false;
     return new Date(task.prazo) < new Date();
   });
 
@@ -118,58 +118,6 @@ const Dashboard = ({ onBack }) => {
   const sortedUnidades = Object.entries(topUnidades)
     .sort(([,a], [,b]) => b - a)
     .slice(0, 5);
-
-  // Estatística de tempo de trabalho (40 minutos por configuração)
-  const getWorkTimeStats = () => {
-    // Considerar tarefas que parecem ser configurações baseadas no título
-    const configurationTasks = filteredTasks.filter(task => {
-      if (!task.title) return false;
-      const title = task.title.toLowerCase();
-      return title.includes('configuração') || 
-             title.includes('configuracao') || 
-             title.includes('instalação') || 
-             title.includes('instalacao') ||
-             title.includes('setup') ||
-             title.includes('setup inicial') ||
-             title.includes('configurar');
-    });
-
-    const totalConfigurations = configurationTasks.length;
-    const totalMinutes = totalConfigurations * 40;
-    const totalHours = Math.floor(totalMinutes / 60);
-    const remainingMinutes = totalMinutes % 60;
-    
-    // Por status
-    const configByStatus = {
-      demanda: configurationTasks.filter(t => t.status === 'demanda').length,
-      'a-fazer': configurationTasks.filter(t => t.status === 'a-fazer').length,
-      'em-andamento': configurationTasks.filter(t => t.status === 'em-andamento').length,
-      feito: configurationTasks.filter(t => t.status === 'feito').length,
-      erro: configurationTasks.filter(t => t.status === 'erro').length,
-    };
-
-    const completedConfigurations = configByStatus.feito;
-    const completedMinutes = completedConfigurations * 40;
-    const completedHours = Math.floor(completedMinutes / 60);
-    const completedRemainingMinutes = completedMinutes % 60;
-
-    return {
-      totalConfigurations,
-      totalHours,
-      totalMinutes,
-      remainingMinutes,
-      formattedTotal: totalHours > 0 ? `${totalHours}h ${remainingMinutes}min` : `${totalMinutes}min`,
-      completedConfigurations,
-      completedHours,
-      completedMinutes,
-      completedRemainingMinutes,
-      formattedCompleted: completedHours > 0 ? `${completedHours}h ${completedRemainingMinutes}min` : `${completedMinutes}min`,
-      pendingMinutes: (totalConfigurations - completedConfigurations) * 40,
-      configByStatus
-    };
-  };
-
-  const workTimeStats = getWorkTimeStats();
 
   if (loading) {
     return (
@@ -218,7 +166,6 @@ const Dashboard = ({ onBack }) => {
       {/* Cards principais */}
       <div className="metrics-grid">
         <div className="metric-card primary">
-          <div className="metric-icon">T</div>
           <div className="metric-content">
             <h3>{totalTasks}</h3>
             <p>Total de Tarefas</p>
@@ -226,7 +173,6 @@ const Dashboard = ({ onBack }) => {
         </div>
 
         <div className="metric-card success">
-          <div className="metric-icon">C</div>
           <div className="metric-content">
             <h3>{tasksByStatus.feito}</h3>
             <p>Concluídas</p>
@@ -235,7 +181,6 @@ const Dashboard = ({ onBack }) => {
         </div>
 
         <div className="metric-card warning">
-          <div className="metric-icon">E</div>
           <div className="metric-content">
             <h3>{tasksByStatus['em-andamento']}</h3>
             <p>Em Andamento</p>
@@ -243,7 +188,6 @@ const Dashboard = ({ onBack }) => {
         </div>
 
         <div className="metric-card danger" onClick={() => setShowOverdueModal(true)} style={{ cursor: 'pointer' }}>
-          <div className="metric-icon">A</div>
           <div className="metric-content">
             <h3>{overdueTasks.length}</h3>
             <p>Atrasadas</p>
@@ -322,83 +266,6 @@ const Dashboard = ({ onBack }) => {
         </div>
       </div>
 
-      {/* Gráfico de Colunas - Métricas Relevantes */}
-      <div className="charts-grid">
-        <div className="chart-card full-width">
-          <h3>Métricas de Desempenho</h3>
-          <div className="bar-chart">
-            <div className="chart-container">
-              <div className="chart-bars">
-                {/* Taxa de Conclusão */}
-                <div className="bar-group">
-                  <div className="bar-wrapper">
-                    <div 
-                      className="bar completion-bar"
-                      style={{ height: `${completionRate}%` }}
-                    >
-                      <span className="bar-value">{completionRate}%</span>
-                    </div>
-                  </div>
-                  <span className="bar-label">Taxa de Conclusão</span>
-                </div>
-
-                {/* Tarefas em Andamento */}
-                <div className="bar-group">
-                  <div className="bar-wrapper">
-                    <div 
-                      className="bar progress-bar"
-                      style={{ height: `${totalTasks > 0 ? Math.round((tasksByStatus['em-andamento'] / totalTasks) * 100) : 0}%` }}
-                    >
-                      <span className="bar-value">{tasksByStatus['em-andamento']}</span>
-                    </div>
-                  </div>
-                  <span className="bar-label">Em Andamento</span>
-                </div>
-
-                {/* Tarefas Atrasadas */}
-                <div className="bar-group">
-                  <div className="bar-wrapper">
-                    <div 
-                      className="bar overdue-bar"
-                      style={{ height: `${totalTasks > 0 ? Math.round((overdueTasks.length / totalTasks) * 100) : 0}%` }}
-                    >
-                      <span className="bar-value">{overdueTasks.length}</span>
-                    </div>
-                  </div>
-                  <span className="bar-label">Atrasadas</span>
-                </div>
-
-                {/* Tarefas com Erro */}
-                <div className="bar-group">
-                  <div className="bar-wrapper">
-                    <div 
-                      className="bar error-bar"
-                      style={{ height: `${totalTasks > 0 ? Math.round((tasksByStatus.erro / totalTasks) * 100) : 0}%` }}
-                    >
-                      <span className="bar-value">{tasksByStatus.erro}</span>
-                    </div>
-                  </div>
-                  <span className="bar-label">Com Erro</span>
-                </div>
-
-                {/* Prioridades Altas */}
-                <div className="bar-group">
-                  <div className="bar-wrapper">
-                    <div 
-                      className="bar high-priority-bar"
-                      style={{ height: `${totalTasks > 0 ? Math.round((tasksByPriority.alta / totalTasks) * 100) : 0}%` }}
-                    >
-                      <span className="bar-value">{tasksByPriority.alta}</span>
-                    </div>
-                  </div>
-                  <span className="bar-label">Prioridade Alta</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Top Rankings */}
       <div className="rankings-grid">
         {/* Top Perfis */}
@@ -459,44 +326,6 @@ const Dashboard = ({ onBack }) => {
           <div className="summary-item">
             <label>Prioridades Altas:</label>
             <span className="value">{tasksByPriority.alta}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Estatísticas de Tempo de Configuração */}
-      <div className="summary-card">
-        <h3>Estatísticas de Tempo de Configuração</h3>
-        <div className="summary-grid">
-          <div className="summary-item">
-            <label>Total de Configurações:</label>
-            <span className="value">{workTimeStats.totalConfigurations}</span>
-          </div>
-          <div className="summary-item">
-            <label>Tempo Total Estimado:</label>
-            <span className="value">{workTimeStats.formattedTotal}</span>
-          </div>
-          <div className="summary-item">
-            <label>Tempo Concluído:</label>
-            <span className="value good">{workTimeStats.formattedCompleted}</span>
-          </div>
-          <div className="summary-item">
-            <label>Tempo Pendente:</label>
-            <span className="value bad">{Math.floor(workTimeStats.pendingMinutes / 60)}h {workTimeStats.pendingMinutes % 60}min</span>
-          </div>
-        </div>
-        
-        <div className="time-progress">
-          <div className="progress-label">
-            <span>Progresso do Tempo</span>
-            <span>{workTimeStats.completedConfigurations}/{workTimeStats.totalConfigurations} configs</span>
-          </div>
-          <div className="progress-bar">
-            <div 
-              className="progress-fill"
-              style={{ 
-                width: `${workTimeStats.totalConfigurations > 0 ? (workTimeStats.completedConfigurations / workTimeStats.totalConfigurations) * 100 : 0}%` 
-              }}
-            ></div>
           </div>
         </div>
       </div>

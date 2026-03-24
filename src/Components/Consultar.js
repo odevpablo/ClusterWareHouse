@@ -323,6 +323,39 @@ function Consultar() {
             </button>
           </div>
 
+          <div className="consultar-inputGroup">
+            <label htmlFor="qr-input" className="consultar-inputLabel">
+              Cole ou digite o conteúdo do QR Code:
+            </label>
+            <div className="consultar-inputWrapper">
+              <input
+                id="qr-input"
+                type="text"
+                value={consulta}
+                onChange={(e) => setConsulta(e.target.value)}
+                placeholder="Digite ou cole o conteúdo do QR Code aqui..."
+                className="consultar-input"
+                disabled={carregando || iniciando}
+              />
+              <button
+                type="button"
+                className="consultar-pasteButton"
+                onClick={async () => {
+                  try {
+                    const text = await navigator.clipboard.readText();
+                    setConsulta(text);
+                  } catch (err) {
+                    console.error('Erro ao ler da área de transferência:', err);
+                  }
+                }}
+                disabled={carregando || iniciando}
+                title="Colar da área de transferência"
+              >
+                📋
+              </button>
+            </div>
+          </div>
+
           <div className="consultar-last">
             <div className="consultar-lastLabel">Último código lido</div>
             <div className="consultar-lastValue consultar-mono">
