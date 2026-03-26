@@ -11,8 +11,9 @@ import config from '../config';
 
 // Configuração do scanner
 const qrConfig = {
-  fps: 10,
-  qrbox: { width: 250, height: 250 },
+  fps: 30,
+  qrbox: { width: 350, height: 350 },
+  aspectRatio: 1.0,
   disableFlip: false,
   experimentalFeatures: { useBarCodeDetectorIfSupported: true },
   formatsToSupport: [
@@ -212,8 +213,8 @@ function Consultar() {
       setConsulta(decodedText);
 
       try {
-        await buscarProduto(decodedText);
         await pararCamera();
+        await buscarProduto(decodedText);
       } catch (error) {
         setErroCamera(error.message);
       }
