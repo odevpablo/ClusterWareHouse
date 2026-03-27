@@ -98,6 +98,31 @@
   transform: translateY(-1px);
 }
 
+.download-feito-btn {
+  background: #27ae60;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.download-feito-btn:hover {
+  background: #229954;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);
+}
+
+.download-feito-btn:active {
+  transform: translateY(0);
+}
+
 .dashboa.refresh-btn:hover {
   background: #27ae60;
   transform: translateY(-2px);

@@ -615,6 +615,54 @@ const Kanban = () => {
     }
   };
 
+  const downloadFeitoCsv = () => {
+    const feitoTasks = tasks.filter(task => task.status === 'feito');
+    
+    if (feitoTasks.length === 0) {
+      alert('Não há tarefas na coluna "Feito" para exportar.');
+      return;
+    }
+
+    // Função para escapar valores CSV
+    const escapeCsv = (value) => {
+      const raw = value === null || value === undefined ? '' : String(value);
+      const escaped = raw.replace(/"/g, '""');
+      return /[\n\r,;"]/.test(escaped) ? `"${escaped}"` : escaped;
+    };
+
+    // Cabeçalho do CSV
+    const header = ['Título', 'IMEI', 'Unidade', 'Número do Chamado', 'Perfil', 'Prazo', 'Prioridade', 'Observação', 'Status'];
+    const lines = [header.join(';')];
+
+    // Adicionar tarefas
+    feitoTasks.forEach(task => {
+      lines.push([
+        escapeCsv(task.title),
+        escapeCsv(task.imei),
+        escapeCsv(task.unidade),
+        escapeCsv(task.numero_chamado || task.numeroChamado),
+        escapeCsv(task.perfil),
+        escapeCsv(task.prazo),
+        escapeCsv(task.priority),
+        escapeCsv(task.observacao),
+        escapeCsv(task.status)
+      ].join(';'));
+    });
+
+    // Criar e baixar arquivo CSV
+    const csv = `\uFEFF${lines.join('\n')}`; // \uFEFF para BOM UTF-8
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tarefas_feitas_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="kanban-container">
       {showDashboard ? (
@@ -646,6 +694,13 @@ const Kanban = () => {
             )}
             <button className="dashboard-btn" onClick={() => setShowDashboard(!showDashboard)}>
               Dashboard
+            </button>
+            <button 
+              className="download-feito-btn" 
+              onClick={downloadFeitoCsv}
+              title="Baixar tarefas concluídas em CSV"
+            >
+              📊 Baixar Feitos
             </button>
           </div>
         </div>
